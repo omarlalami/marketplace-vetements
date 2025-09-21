@@ -1,7 +1,8 @@
 # marketplace-vetements
 
-Avancement 1er commit V1 :
-Mise en place architecture
+Avancement V1 :
+Mise en place architecture : OK
+Implémentation backend : OK
 
 ## Prerequisites
 
@@ -9,7 +10,7 @@ Mise en place architecture
 
 docker run --name postgresqldev -e POSTGRES_PASSWORD=password -e POSTGRES_USER=root -p 5432:5432 -d postgres
 
-- Lancer Minio (non requis pour le moment)
+- Lancer Minio
 
 docker pull minio/minio
 
@@ -36,7 +37,6 @@ CREATE SCHEMA marketplace_schema;
 GRANT ALL ON SCHEMA marketplace_schema TO marketplace;
 \dn+ marketplace_schema
 
-
 ## Premier test de la base de données
 
 Test script de connection & creation & remplissage base de données
@@ -57,3 +57,16 @@ Nous retourne Ok ...
 Sous naviguateur
 http://localhost:3001/test-categories
 Nous retourne des categories
+
+## Test Implémentation backend : API creation  utilisateur 
+
+Dans un nouveau terminal :
+
+curl -X POST http://localhost:3001/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "test@example.com",
+    "password": "password123",
+    "firstName": "John",
+    "lastName": "Doe"
+  }'

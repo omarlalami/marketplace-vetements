@@ -1,53 +1,66 @@
 require('dotenv').config();
 const express = require('express');
-const { Pool } = require('pg');
+const cors = require('cors');
+const { initializeBuckets } = require('./config/minio');
+
+const authRoutes = require('./routes/auth');
+const shopRoutes = require('./routes/shops');
+const productRoutes = require('./routes/products');
+const categoryRoutes = require('./routes/categories');
 
 const app = express();
-const port = process.env.PORT || 3001;
 
-// Configuration base de données
-const pool = new Pool({
-  user: process.env.DB_USER,
-  host: process.env.DB_HOST,
-  database: process.env.DB_NAME,
-  password: process.env.DB_PASSWORD,
-  port: process.env.DB_PORT,
-});
+// Middleware
+app.use(cors());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true }));
 
-app.use(express.json());
+// Routes
+app.use('/auth', authRoutes);
+app.use('/shops', shopRoutes);
+app.use('/products', productRoutes);
+app.use('/categories', categoryRoutes);
 
 // Route de test
-app.get('/health', async (req, res) => {
-  try {
-    const result = await pool.query('SELECT NOW() as time, version()');
-    res.json({
-      status: 'OK',
-      message: 'API Marketplace V1',
-      database: 'Connected',
-      time: result.rows[0].time
-    });
-  } catch (error) {
-    res.status(500).json({
-      status: 'ERROR',
-      message: error.message
-    });
-  }
+app.get('/health', (req, res) => {
+  res.json({ 
+    status: 'OK', 
+    message: 'API Marketplace V1 - Version complète',
+    timestamp: new Date().toISOString()
+  });
 });
 
-// Test des catégories
-app.get('/test-categories', async (req, res) => {
-  try {
-    const result = await pool.query('SELECT * FROM categories ORDER BY name');
-    res.json({
-      categories: result.rows
-    });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
+// Gestion des erreurs 404
+app.use('*', (req, res) => {
+  res.status(404).json({ error: 'Route non trouvée' });
 });
 
-app.listen(port, () => {
-  console.log(`🚀 Serveur de test démarré sur http://localhost:${port}`);
-  console.log(`📍 Test: http://localhost:${port}/health`);
-  console.log(`📍 Catégories: http://localhost:${port}/test-categories`);
+// Gestion globale des erreurs
+app.use((error, req, res, next) => {
+  console.error('Erreur globale:', error);
+  res.status(500).json({ error: 'Erreur interne du serveur' });
 });
+
+const PORT = process.env.PORT;
+
+// Initialiser MinIO puis démarrer le serveur
+initializeBuckets()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`🚀 API Marketplace démarrée sur le port ${PORT}`);
+      console.log(`📍 Health check: http://localhost:${PORT}/health`);
+      console.log(`📍 Documentation des routes:`);
+      console.log(`   • POST /auth/register - Inscription`);
+      console.log(`   • POST /auth/login - Connexion`);
+      console.log(`   • GET /auth/profile - Profil utilisateur`);
+      console.log(`   • POST /shops - Créer une boutique`);
+      console.log(`   • GET /shops/my-shops - Mes boutiques`);
+      console.log(`   • POST /products - Créer un produit`);
+      console.log(`   • GET /products - Rechercher des produits`);
+      console.log(`   • GET /categories - Toutes les catégories`);
+    });
+  })
+  .catch(error => {
+    console.error('❌ Erreur lors du démarrage:', error);
+    process.exit(1);
+  });
