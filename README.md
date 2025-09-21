@@ -2,7 +2,8 @@
 
 Avancement V1 :
 Mise en place architecture : OK
-Implémentation backend : OK
+Implémentation Backend : OK
+Implémentation Frontend (Initiatlisation): OK
 
 ## Prerequisites
 
@@ -41,8 +42,12 @@ GRANT ALL ON SCHEMA marketplace_schema TO marketplace;
 
 Test script de connection & creation & remplissage base de données
 
-PS C:\Users\omarl\Desktop\projects\marketplace-vetements> pnpm migrate
-PS C:\Users\omarl\Desktop\projects\marketplace-vetements> pnpm seed
+```bash
+
+marketplace-vetements> pnpm migrate
+marketplace-vetements> pnpm seed
+
+```
 
 ## Test minimal avec serveur simple
 
@@ -70,3 +75,18 @@ curl -X POST http://localhost:3001/auth/register \
     "firstName": "John",
     "lastName": "Doe"
   }'
+
+## Quickstart
+
+```bash
+
+# Build packages Frontend & API
+pnpm build
+
+# Setup database & creation & remplissage
+pnpm setup-db
+
+# Start Frontend & API
+pnpm dev
+
+```
