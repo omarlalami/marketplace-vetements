@@ -9,6 +9,14 @@ const generateToken = (userId) => {
   );
 };
 
+const cookieOptions = {
+  httpOnly: true,
+  secure: true, // secure seulement en prod
+  sameSite: true,
+  // ⚠️ si API et front sont sur 2 domaines différents → utiliser "none" + secure: true
+  maxAge: 1000 * 60 * 60 * 24 * 30 // 30 jours
+};
+
 const register = async (req, res) => {
   try {
     const { email, password, firstName, lastName } = req.body;
@@ -20,6 +28,8 @@ const register = async (req, res) => {
 
     const user = await User.create({ email, password, firstName, lastName });
     const token = generateToken(user.id);
+
+    res.cookie('auth-store', token, cookieOptions);
 
     res.status(201).json({
       message: 'Compte créé avec succès',
@@ -53,6 +63,8 @@ const login = async (req, res) => {
     }
 
     const token = generateToken(user.id);
+
+    res.cookie('auth-store', token, cookieOptions);
 
     res.json({
       message: 'Connexion réussie',
