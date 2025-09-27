@@ -119,7 +119,7 @@ class Product {
   const query = `
     SELECT p.*, s.name as shop_name, s.slug as shop_slug,
             c.name as category_name, c.slug as category_slug,
-            (SELECT url FROM product_images WHERE product_id = p.id AND is_primary = true LIMIT 1) as primary_image
+            (SELECT url FROM product_images WHERE product_id = p.id LIMIT 1) as primary_image
     FROM products p
     LEFT JOIN shops s ON p.shop_id = s.id
     LEFT JOIN categories c ON p.category_id = c.id
@@ -143,6 +143,63 @@ class Product {
   
   return result.rows;
 }
+
+  static async updateById(id, productData) {
+    const client = await pool.connect();
+    
+    try {
+      await client.query('BEGIN');
+      
+      // Mettre à jour le produit
+      const productQuery = `
+        UPDATE products 
+        SET name = $2, description = $3, category_id = $4, price = $5, updated_at = NOW()
+        WHERE id = $1
+        RETURNING *
+      `;
+      
+      const productResult = await client.query(productQuery, [
+        id,
+        productData.name,
+        productData.description,
+        productData.categoryId,
+        productData.price
+      ]);
+      
+      const product = productResult.rows[0];
+      
+      // Supprimer les anciennes variantes
+      await client.query('DELETE FROM product_variants WHERE product_id = $1', [id]);
+      
+      // Ajouter les nouvelles variantes si elles existent
+      if (productData.variants && productData.variants.length > 0) {
+        for (const variant of productData.variants) {
+          const variantQuery = `
+            INSERT INTO product_variants (product_id, name, type, value, stock_quantity)
+            VALUES ($1, $2, $3, $4, $5)
+          `;
+          
+          await client.query(variantQuery, [
+            id,
+            variant.name,
+            variant.type,
+            variant.value,
+            variant.stockQuantity || 0
+          ]);
+        }
+      }
+      
+      await client.query('COMMIT');
+      return product;
+      
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
 }
 
 module.exports = Product;

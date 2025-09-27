@@ -137,6 +137,33 @@ class ApiClient {
     return response.data
   }
 
+  async getProductForEdit(id: string) {
+    const response = await this.client.get(`/products/${id}/edit`)
+    return response.data
+  }
+
+  async updateProduct(id: string, data: {
+    name: string
+    description?: string
+    categoryId?: string
+    price?: number
+    variants?: Array<{
+      name: string
+      type: string
+      value: string
+      stockQuantity: number
+    }>
+  }) {
+    const response = await this.client.put(`/products/${id}`, data)
+    return response.data
+  }
+
+  async deleteProductImage(productId: string, imageId: string) {
+    const response = await this.client.delete(`/products/${productId}/images/${imageId}`)
+    return response.data
+  }
+
+
   }
 
 export const apiClient = new ApiClient()
