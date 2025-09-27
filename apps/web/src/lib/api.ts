@@ -163,7 +163,11 @@ class ApiClient {
     return response.data
   }
 
-
+  async deleteProduct(id: string) {
+    const response = await this.client.delete(`/products/${id}`)
+    return response.data
+  }
+  
   }
 
 export const apiClient = new ApiClient()

@@ -5,6 +5,17 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { apiClient } from '@/lib/api'
 import { 
@@ -14,6 +25,7 @@ import {
   Edit, 
   Trash2, 
   Eye,
+  Loader2,
   Filter,
   MoreHorizontal,
   Image as ImageIcon
@@ -47,6 +59,7 @@ export default function ProductsPage() {
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([])
   const [shops, setShops] = useState([])
   const [loading, setLoading] = useState(true)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedShop, setSelectedShop] = useState('all')
   const [error, setError] = useState('')
@@ -107,14 +120,17 @@ export default function ProductsPage() {
     setFilteredProducts(filtered)
   }, [products, searchTerm, selectedShop])
 
-  const handleDelete = async (productId: string) => {
-    if (!confirm('Êtes-vous sûr de vouloir supprimer ce produit ?')) return
-
+  const handleDelete = async (productId: string, productName: string) => {
     try {
-      // await apiClient.deleteProduct(productId) // À implémenter côté API
+      setDeletingId(productId)
+      await apiClient.deleteProduct(productId)
+      // Retirer le produit de la liste locale
       setProducts(prev => prev.filter(p => p.id !== productId))
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erreur suppression:', error)
+      setError(error.response?.data?.error || 'Erreur lors de la suppression')
+    } finally {
+      setDeletingId(null)
     }
   }
 
@@ -212,7 +228,7 @@ export default function ProductsPage() {
         {error && (
           <Card>
             <CardContent className="pt-6">
-              <div className="text-center text-red-600">
+              <div className="p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md">
                 {error}
               </div>
             </CardContent>
@@ -293,16 +309,67 @@ export default function ProductsPage() {
                 <CardHeader className="pb-2">
                   <div className="flex justify-between items-start gap-2">
                     <CardTitle className="text-lg line-clamp-1">{product.name}</CardTitle>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                      onClick={() => handleDelete(product.id)}
-                    >
-                      <Trash2 className="h-4 w-4 text-red-500" />
-                    </Button>
+
+
+
+
+
+
+
+
+
+                    {/* Bouton de suppression avec confirmation */}
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                          disabled={deletingId === product.id}
+                        >
+                          {deletingId === product.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4 text-red-500" />
+                          )}
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Supprimer le produit ?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Êtes-vous sûr de vouloir supprimer <strong>"{product.name}"</strong> ?
+                            <br />
+                            Cette action est irréversible et supprimera également toutes les images et variantes associées.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Annuler</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => handleDelete(product.id, product.name)}
+                            className="bg-red-600 hover:bg-red-700"
+                          >
+                            Supprimer
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </div>
-                  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <span>{product.shop_name}</span>
                     {product.category_name && (

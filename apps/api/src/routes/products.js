@@ -268,4 +268,31 @@ router.delete('/:productId/images/:imageId', authenticateToken, async (req, res)
   }
 });
 
+// Route pour supprimer un produit
+router.delete('/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Vérifier que le produit existe et appartient à l'utilisateur
+    const product = await Product.findById(id);
+    if (!product) {
+      return res.status(404).json({ error: 'Produit non trouvé' });
+    }
+
+    const shop = await Shop.findById(product.shop_id);
+    if (shop.owner_id !== req.user.userId) {
+      return res.status(403).json({ error: 'Vous n\'avez pas les droits pour supprimer ce produit' });
+    }
+
+    // Supprimer le produit (avec cascade pour les variantes et images)
+    await Product.deleteById(id);
+    
+    res.json({ message: 'Produit supprimé avec succès' });
+
+  } catch (error) {
+    console.error('Erreur suppression produit:', error);
+    res.status(500).json({ error: 'Erreur lors de la suppression du produit' });
+  }
+});
+
 module.exports = router;

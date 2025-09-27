@@ -200,6 +200,57 @@ class Product {
     }
   }
 
+  static async deleteById(id) {
+    const client = await pool.connect();
+    
+    try {
+      await client.query('BEGIN');
+      
+      // Récupérer toutes les images du produit pour les supprimer de MinIO
+      const imagesQuery = 'SELECT url FROM product_images WHERE product_id = $1';
+      const imagesResult = await client.query(imagesQuery, [id]);
+      
+      // Supprimer les images de MinIO
+      const { minioClient } = require('../config/minio');
+      for (const image of imagesResult.rows) {
+        try {
+          const urlParts = image.url.split('/');
+          const fileName = urlParts.slice(-2).join('/');
+          await minioClient.removeObject('products', fileName);
+          console.log(`🗑️  Image supprimée de MinIO: ${fileName}`);
+        } catch (error) {
+          console.error('Erreur suppression image MinIO:', error);
+          // Continuer même si une image ne peut pas être supprimée
+        }
+      }
+      
+      // Supprimer les images de la base (cascade automatique)
+      await client.query('DELETE FROM product_images WHERE product_id = $1', [id]);
+      
+      // Supprimer les variantes (cascade automatique)
+      await client.query('DELETE FROM product_variants WHERE product_id = $1', [id]);
+      
+      // Supprimer le produit
+      const result = await client.query('DELETE FROM products WHERE id = $1 RETURNING *', [id]);
+      
+      if (result.rows.length === 0) {
+        throw new Error('Produit non trouvé');
+      }
+      
+      await client.query('COMMIT');
+      console.log(`✅ Produit supprimé: ${result.rows[0].name}`);
+      
+      return result.rows[0];
+      
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+
 }
 
 module.exports = Product;
