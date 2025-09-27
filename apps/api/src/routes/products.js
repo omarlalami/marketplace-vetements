@@ -160,4 +160,31 @@ router.post('/:productId/images', authenticateToken, upload.array('images', 10),
   }
 });
 
+// Récupérer les produits d'une boutique spécifique (pour le dashboard)
+router.get('/shop/:shopId/products', authenticateToken, async (req, res) => {
+  try {
+    const { shopId } = req.params;
+    
+    // Vérifier que l'utilisateur possède cette boutique
+    const shop = await Shop.findById(shopId);
+    if (!shop) {
+      return res.status(404).json({ error: 'Boutique non trouvée' });
+    }
+
+    if (shop.owner_id !== req.user.userId) {
+      return res.status(403).json({ error: 'Accès non autorisé' });
+    }
+
+    const products = await Product.findByShopId(shopId);
+
+    res.json({
+      products
+    });
+
+  } catch (error) {
+    console.error('Erreur récupération produits boutique:', error);
+    res.status(500).json({ error: 'Erreur lors de la récupération des produits' });
+  }
+});
+
 module.exports = router;

@@ -114,6 +114,35 @@ class Product {
     const result = await pool.query(query, params);
     return result.rows;
   }
+
+  static async findByShopId(shopId) {
+  const query = `
+    SELECT p.*, s.name as shop_name, s.slug as shop_slug,
+            c.name as category_name, c.slug as category_slug,
+            (SELECT url FROM product_images WHERE product_id = p.id AND is_primary = true LIMIT 1) as primary_image
+    FROM products p
+    LEFT JOIN shops s ON p.shop_id = s.id
+    LEFT JOIN categories c ON p.category_id = c.id
+    WHERE p.shop_id = $1 AND p.is_active = true
+    ORDER BY p.created_at DESC
+  `;
+  
+  const result = await pool.query(query, [shopId]);
+  
+  // Pour chaque produit, récupérer les variantes
+  for (let product of result.rows) {
+    const variantsQuery = `
+      SELECT type, value, stock_quantity 
+      FROM product_variants 
+      WHERE product_id = $1 
+      ORDER BY type, value
+    `;
+    const variantsResult = await pool.query(variantsQuery, [product.id]);
+    product.variants = variantsResult.rows;
+  }
+  
+  return result.rows;
+}
 }
 
 module.exports = Product;

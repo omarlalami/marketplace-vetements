@@ -128,6 +128,15 @@ class ApiClient {
     return response.data
   }
 
+  async getShopProducts(shopId: string, params?: {
+    search?: string
+    category?: string
+    page?: number
+  }) {
+    const response = await this.client.get(`/products/shop/${shopId}/products`, { params })
+    return response.data
+  }
+
   }
 
 export const apiClient = new ApiClient()
