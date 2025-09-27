@@ -2,8 +2,14 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
 const authenticateToken = async (req, res, next) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
+
+/* console.log("🔍 HEADERS:", req.headers)
+console.log("🔍 BODY:", req.body)
+console.log("🔍 PARAMS:", req.params)
+console.log("🔍 QUERY:", req.query)
+console.log("🔍 COOKIES:", req.cookies) */
+//console.log("🔍 QUERY:", req.user)
+  const token =  req.cookies["auth-store"];
 
   if (!token) {
     return res.status(401).json({ error: 'Token d\'accès manquant' });
@@ -18,6 +24,14 @@ const authenticateToken = async (req, res, next) => {
     }
 
     req.user = { userId: user.id, email: user.email };
+//console.log("🔍 QUERY:", req.user)
+
+/* console.log("🔍 HEADERS:", req.headers)
+console.log("🔍 BODY:", req.body)
+console.log("🔍 PARAMS:", req.params)
+console.log("🔍 QUERY:", req.query)
+console.log("🔍 COOKIES:", req.cookies) */
+
     next();
     
   } catch (error) {
@@ -26,8 +40,7 @@ const authenticateToken = async (req, res, next) => {
 };
 
 const optionalAuth = async (req, res, next) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
+  const token = req.cookies["auth-store"];
 
   if (token) {
     try {

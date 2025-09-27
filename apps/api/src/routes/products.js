@@ -160,4 +160,139 @@ router.post('/:productId/images', authenticateToken, upload.array('images', 10),
   }
 });
 
+// Récupérer les produits d'une boutique spécifique (pour le dashboard)
+router.get('/shop/:shopId/products', authenticateToken, async (req, res) => {
+  try {
+    const { shopId } = req.params;
+    
+    // Vérifier que l'utilisateur possède cette boutique
+    const shop = await Shop.findById(shopId);
+    if (!shop) {
+      return res.status(404).json({ error: 'Boutique non trouvée' });
+    }
+
+    if (shop.owner_id !== req.user.userId) {
+      return res.status(403).json({ error: 'Accès non autorisé' });
+    }
+
+    const products = await Product.findByShopId(shopId);
+
+    res.json({
+      products
+    });
+
+  } catch (error) {
+    console.error('Erreur récupération produits boutique:', error);
+    res.status(500).json({ error: 'Erreur lors de la récupération des produits' });
+  }
+});
+
+// Récupérer un produit pour édition (protégé)
+router.get('/:id/edit', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const product = await Product.findById(id);
+    if (!product) {
+      return res.status(404).json({ error: 'Produit non trouvé' });
+    }
+
+    // Vérifier que l'utilisateur peut éditer ce produit
+    const shop = await Shop.findById(product.shop_id);
+    if (shop.owner_id !== req.user.userId) {
+      return res.status(403).json({ error: 'Vous n\'avez pas les droits pour éditer ce produit' });
+    }
+
+    res.json({ product });
+
+  } catch (error) {
+    console.error('Erreur récupération produit pour édition:', error);
+    res.status(500).json({ error: 'Erreur lors de la récupération du produit' });
+  }
+});
+
+// Route pour mettre à jour un produit
+router.put('/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Vérifier que le produit existe et appartient à l'utilisateur
+    const existingProduct = await Product.findById(id);
+    if (!existingProduct) {
+      return res.status(404).json({ error: 'Produit non trouvé' });
+    }
+
+    const shop = await Shop.findById(existingProduct.shop_id);
+    if (shop.owner_id !== req.user.userId) {
+      return res.status(403).json({ error: 'Vous n\'avez pas les droits pour modifier ce produit' });
+    }
+
+    // Mettre à jour le produit
+    const updatedProduct = await Product.updateById(id, req.body);
+    
+    res.json({
+      message: 'Produit mis à jour avec succès',
+      product: updatedProduct
+    });
+
+  } catch (error) {
+    console.error('Erreur mise à jour produit:', error);
+    res.status(500).json({ error: 'Erreur lors de la mise à jour du produit' });
+  }
+});
+
+// Route pour supprimer une image
+router.delete('/:productId/images/:imageId', authenticateToken, async (req, res) => {
+  try {
+    const { productId, imageId } = req.params;
+    
+    // Vérifier les droits
+    const product = await Product.findById(productId);
+    if (!product) {
+      return res.status(404).json({ error: 'Produit non trouvé' });
+    }
+
+    const shop = await Shop.findById(product.shop_id);
+    if (shop.owner_id !== req.user.userId) {
+      return res.status(403).json({ error: 'Accès non autorisé' });
+    }
+
+    // Supprimer l'image de la base et de MinIO
+    await ImageService.deleteProductImage(imageId);
+    
+    res.json({ message: 'Image supprimée avec succès' });
+
+  } catch (error) {
+    console.error('Erreur suppression image:', error);
+    res.status(500).json({ error: 'Erreur lors de la suppression de l\'image' });
+  }
+});
+
+// Route pour supprimer un produit
+router.delete('/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Vérifier que le produit existe et appartient à l'utilisateur
+    const product = await Product.findById(id);
+    if (!product) {
+      return res.status(404).json({ error: 'Produit non trouvé' });
+    }
+
+    const shop = await Shop.findById(product.shop_id);
+    if (shop.owner_id !== req.user.userId) {
+      return res.status(403).json({ error: 'Vous n\'avez pas les droits pour supprimer ce produit' });
+    }
+
+    // Supprimer le produit (avec cascade pour les variantes et images)
+    await Product.deleteById(id);
+    
+    res.json({ message: 'Produit supprimé avec succès' });
+
+  } catch (error) {
+    console.error('Erreur suppression produit:', error);
+    res.status(500).json({ error: 'Erreur lors de la suppression du produit' });
+  }
+});
+
 module.exports = router;

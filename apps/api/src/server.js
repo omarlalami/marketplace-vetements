@@ -1,5 +1,6 @@
 require('dotenv').config();
 const express = require('express');
+const cookieParser = require('cookie-parser')
 const cors = require('cors');
 const { initializeBuckets } = require('./config/minio');
 
@@ -11,8 +12,12 @@ const categoryRoutes = require('./routes/categories');
 const app = express();
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: process.env.NEXT_PUBLIC_APP_URL,
+  credentials: true
+}));
 app.use(express.json({ limit: '10mb' }));
+app.use(cookieParser());
 app.use(express.urlencoded({ extended: true }));
 
 // Routes
@@ -20,6 +25,16 @@ app.use('/auth', authRoutes);
 app.use('/shops', shopRoutes);
 app.use('/products', productRoutes);
 app.use('/categories', categoryRoutes);
+
+/* app.use((req, res, next) => {
+  console.log("🔎 New request:")
+  console.log("Method:", req.method)
+  console.log("URL:", req.originalUrl)
+  console.log("Headers:", req.headers)
+  console.log("Cookies:", req.cookies)
+  console.log("Body:", req.body)
+  next()
+}) */
 
 // Route de test
 app.get('/health', (req, res) => {
