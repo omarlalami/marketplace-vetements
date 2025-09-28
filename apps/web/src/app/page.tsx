@@ -95,7 +95,7 @@ export default function HomePage() {
               <Link href="/products" className="text-muted-foreground hover:text-foreground transition-colors">
                 Produits
               </Link>
-              <Link href="/creators" className="text-muted-foreground hover:text-foreground transition-colors">
+              <Link href="/shops" className="text-muted-foreground hover:text-foreground transition-colors">
                 Créateurs
               </Link>
             </nav>
@@ -344,7 +344,7 @@ export default function HomePage() {
                 <Link href="/products" className="block text-gray-400 hover:text-white transition-colors">
                   Tous les produits
                 </Link>
-                <Link href="/creators" className="block text-gray-400 hover:text-white transition-colors">
+                <Link href="/shops" className="block text-gray-400 hover:text-white transition-colors">
                   Créateurs
                 </Link>
               </div>

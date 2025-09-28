@@ -5,6 +5,7 @@ const Shop = require('../models/Shop');
 const ImageService = require('../services/ImageService');
 const { authenticateToken, optionalAuth } = require('../middleware/auth');
 const Joi = require('joi');
+const pool = require('../config/database');
 
 const router = express.Router();
 
@@ -72,54 +73,6 @@ router.post('/', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Erreur création produit:', error);
     res.status(500).json({ error: 'Erreur lors de la création du produit' });
-  }
-});
-
-// Récupérer un produit par ID (public)
-router.get('/:id', optionalAuth, async (req, res) => {
-  try {
-    const product = await Product.findById(req.params.id);
-    
-    if (!product) {
-      return res.status(404).json({ error: 'Produit non trouvé' });
-    }
-
-    res.json({ product });
-  } catch (error) {
-    console.error('Erreur récupération produit:', error);
-    res.status(500).json({ error: 'Erreur lors de la récupération du produit' });
-  }
-});
-
-// Rechercher des produits (public)
-router.get('/', async (req, res) => {
-  try {
-    const {
-      search,
-      limit = 20,
-      page = 1
-    } = req.query;
-
-    const offset = (page - 1) * limit;
-
-    const products = await Product.searchProducts({
-      search,
-      limit: parseInt(limit),
-      offset
-    });
-
-    res.json({
-      products,
-      pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
-        hasMore: products.length === parseInt(limit)
-      }
-    });
-
-  } catch (error) {
-    console.error('Erreur recherche produits:', error);
-    res.status(500).json({ error: 'Erreur lors de la recherche de produits' });
   }
 });
 
@@ -201,6 +154,53 @@ router.get('/public', async (req, res) => {
   }
 });
 
+// Récupérer un produit par ID (public)
+router.get('/:id', optionalAuth, async (req, res) => {
+  try {
+    const product = await Product.findById(req.params.id);
+    
+    if (!product) {
+      return res.status(404).json({ error: 'Produit non trouvé' });
+    }
+
+    res.json({ product });
+  } catch (error) {
+    console.error('Erreur récupération produit:', error);
+    res.status(500).json({ error: 'Erreur lors de la récupération du produit' });
+  }
+});
+
+// Rechercher des produits (public)
+router.get('/', async (req, res) => {
+  try {
+    const {
+      search,
+      limit = 20,
+      page = 1
+    } = req.query;
+
+    const offset = (page - 1) * limit;
+
+    const products = await Product.searchProducts({
+      search,
+      limit: parseInt(limit),
+      offset
+    });
+
+    res.json({
+      products,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        hasMore: products.length === parseInt(limit)
+      }
+    });
+
+  } catch (error) {
+    console.error('Erreur recherche produits:', error);
+    res.status(500).json({ error: 'Erreur lors de la recherche de produits' });
+  }
+});
 
 // Upload d'images pour un produit
 router.post('/:productId/images', authenticateToken, upload.array('images', 10), async (req, res) => {

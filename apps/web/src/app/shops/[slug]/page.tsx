@@ -167,7 +167,7 @@ export default function ShopPage() {
               <Link href="/products" className="text-muted-foreground hover:text-foreground">
                 Produits
               </Link>
-              <Link href="/creators" className="text-muted-foreground hover:text-foreground">
+              <Link href="/shops" className="text-muted-foreground hover:text-foreground">
                 Créateurs
               </Link>
             </nav>

@@ -162,7 +162,7 @@ export default function ProductsPage() {
               <Link href="/products" className="font-medium text-primary">
                 Produits
               </Link>
-              <Link href="/creators" className="text-muted-foreground hover:text-foreground">
+              <Link href="/shops" className="text-muted-foreground hover:text-foreground">
                 Créateurs
               </Link>
               <Link href="/login" className="text-muted-foreground hover:text-foreground">

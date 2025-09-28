@@ -92,6 +92,16 @@ class ApiClient {
     return response.data
   }
 
+  async getAllShops(params?: {
+    search?: string
+    sortBy?: string
+    limit?: number
+    page?: number
+  }) {
+    const response = await this.client.get('/shops', { params })
+    return response.data
+  }
+
   // Products
   async createProduct(data: {
     name: string
@@ -126,7 +136,7 @@ class ApiClient {
     limit?: number
     page?: number
   }) {
-    const response = await this.client.get('/products', { params })
+    const response = await this.client.get('/products/public', { params })
     return response.data
   }
 
