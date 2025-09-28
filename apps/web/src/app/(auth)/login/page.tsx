@@ -26,7 +26,7 @@ export default function LoginPage() {
     try {
       const data = await apiClient.login(email, password)
       login(data.user, data.token)
-      router.push('/')
+      router.push('/dashboard')
     } catch (error: any) {
       setError(error.response?.data?.error || 'Erreur de connexion')
     } finally {

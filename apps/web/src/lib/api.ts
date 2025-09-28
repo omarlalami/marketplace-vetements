@@ -56,6 +56,16 @@ class ApiClient {
     return response.data
   }
 
+  async logout() {
+    try {
+      const response = await this.client.post('/auth/logout')
+      return response.data
+    } catch (error) {
+      console.error("Erreur lors du logout:", error)
+      throw error
+    }
+  }
+
   async getCategories() {
     const response = await this.client.get('/categories')
     return response.data
@@ -106,7 +116,16 @@ class ApiClient {
     return response.data
   }
 
-  async getProducts(params?: { search?: string }) {
+  // Méthode mise à jour pour getProducts avec plus d'options
+  async getProducts(params?: { 
+    search?: string
+    category?: string
+    minPrice?: number
+    maxPrice?: number
+    shop?: string
+    limit?: number
+    page?: number
+  }) {
     const response = await this.client.get('/products', { params })
     return response.data
   }

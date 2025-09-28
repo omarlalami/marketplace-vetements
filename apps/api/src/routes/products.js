@@ -92,7 +92,7 @@ router.get('/:id', optionalAuth, async (req, res) => {
 });
 
 // Rechercher des produits (public)
-router.get('/', optionalAuth, async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const {
       search,
@@ -122,6 +122,85 @@ router.get('/', optionalAuth, async (req, res) => {
     res.status(500).json({ error: 'Erreur lors de la recherche de produits' });
   }
 });
+
+// Route publique pour les produits (avec filtre boutique)
+router.get('/public', async (req, res) => {
+  try {
+    const {
+      search,
+      category,
+      minPrice,
+      maxPrice,
+      shop, // Nouveau paramètre pour filtrer par slug de boutique
+      limit = 20,
+      page = 1
+    } = req.query;
+
+    const offset = (page - 1) * limit;
+
+    let query = `
+      SELECT p.*, s.name as shop_name, s.slug as shop_slug, 
+             c.name as category_name,
+             (SELECT url FROM product_images WHERE product_id = p.id AND is_primary = true LIMIT 1) as primary_image
+      FROM products p
+      LEFT JOIN shops s ON p.shop_id = s.id
+      LEFT JOIN categories c ON p.category_id = c.id
+      WHERE p.is_active = true AND s.is_active = true
+    `;
+    
+    const params = [];
+    let paramIndex = 1;
+    
+    if (search) {
+      query += ` AND (p.name ILIKE $${paramIndex} OR p.description ILIKE $${paramIndex} OR s.name ILIKE $${paramIndex})`;
+      params.push(`%${search}%`);
+      paramIndex++;
+    }
+    
+    if (category) {
+      query += ` AND p.category_id = $${paramIndex}`;
+      params.push(category);
+      paramIndex++;
+    }
+    
+    if (minPrice) {
+      query += ` AND p.price >= $${paramIndex}`;
+      params.push(parseFloat(minPrice));
+      paramIndex++;
+    }
+    
+    if (maxPrice) {
+      query += ` AND p.price <= $${paramIndex}`;
+      params.push(parseFloat(maxPrice));
+      paramIndex++;
+    }
+    
+    if (shop) {
+      query += ` AND s.slug = $${paramIndex}`;
+      params.push(shop);
+      paramIndex++;
+    }
+    
+    query += ` ORDER BY p.created_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
+    params.push(parseInt(limit), offset);
+    
+    const result = await pool.query(query, params);
+    
+    res.json({
+      products: result.rows,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        hasMore: result.rows.length === parseInt(limit)
+      }
+    });
+
+  } catch (error) {
+    console.error('Erreur recherche produits publics:', error);
+    res.status(500).json({ error: 'Erreur lors de la recherche de produits' });
+  }
+});
+
 
 // Upload d'images pour un produit
 router.post('/:productId/images', authenticateToken, upload.array('images', 10), async (req, res) => {

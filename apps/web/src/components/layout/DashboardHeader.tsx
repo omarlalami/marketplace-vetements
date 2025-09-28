@@ -3,9 +3,15 @@
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { useAuthStore } from '@/stores/authStore'
+import { useRouter } from 'next/navigation'
 
 export function DashboardHeader() {
+  const router = useRouter()
   const { user, logout } = useAuthStore()
+    const handleLogout = () => {
+    logout()
+    router.push('/')
+  }
 
   return (
     <header className="sticky top-0 z-40 bg-white border-b shadow-sm">
@@ -25,7 +31,7 @@ export function DashboardHeader() {
           <span className="text-sm text-gray-600">
             {user?.firstName} {user?.lastName}
           </span>
-          <Button variant="outline" onClick={logout}>
+          <Button variant="outline" onClick={handleLogout}>
             Déconnexion
           </Button>
         </div>

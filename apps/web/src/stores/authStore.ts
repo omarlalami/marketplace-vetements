@@ -2,6 +2,7 @@
 
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { apiClient } from '@/lib/api'
 
 interface User {
   id: string
@@ -33,7 +34,13 @@ export const useAuthStore = create<AuthStore>()(
         set({ user, token, isLoading: false })
       },
 
-      logout: () => {
+      logout: async () => {
+
+        try {
+          await apiClient.logout()
+        } catch (error) {
+          console.error("Erreur lors du logout:", error)
+        }
         set({ user: null, token: null, isLoading: false })
       },
 

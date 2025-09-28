@@ -50,7 +50,7 @@ export default function RegisterPage() {
       })
       
       login(data.user, data.token)
-      router.push('/')
+      router.push('/dashboard')
     } catch (error: any) {
       setError(error.response?.data?.error || 'Erreur lors de l\'inscription')
     } finally {
