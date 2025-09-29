@@ -1,5 +1,5 @@
 const express = require('express');
-const { register, login, getProfile } = require('../controllers/authController');
+const { register, login, getProfile, logout } = require('../controllers/authController');
 const { authenticateToken } = require('../middleware/auth');
 const Joi = require('joi');
 
@@ -30,5 +30,6 @@ const validateRequest = (schema) => {
 router.post('/register', validateRequest(registerSchema), register);
 router.post('/login', validateRequest(loginSchema), login);
 router.get('/profile', authenticateToken, getProfile);
+router.post('/logout', logout);
 
 module.exports = router;

@@ -110,8 +110,24 @@ const getProfile = async (req, res) => {
   }
 };
 
+const logout = (req, res) => {
+  try {
+    res.clearCookie("auth-store", {
+      httpOnly: true,
+      secure: true, // en prod → true, en dev → false si tu n’as pas https
+      sameSite: true, // si frontend et backend sont sur 2 domaines différents → "none"
+    });
+
+    res.status(200).json({ message: "Déconnexion réussie" });
+  } catch (error) {
+    console.error("Erreur logout:", error);
+    res.status(500).json({ error: "Erreur lors de la déconnexion" });
+  }
+};
+
 module.exports = {
   register,
   login,
-  getProfile
+  getProfile,
+  logout
 };
