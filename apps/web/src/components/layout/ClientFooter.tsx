@@ -1,0 +1,62 @@
+'use client'
+
+import Link from 'next/link'
+
+export function ClientFooter() {
+  return (
+    <footer className="bg-gray-900 text-white py-12">
+        <div className="container mx-auto px-4">
+          <div className="grid gap-8 md:grid-cols-4">
+            <div>
+              <h3 className="text-lg font-bold mb-4">Fashion Market</h3>
+              <p className="text-gray-400">
+                La marketplace qui connecte les créateurs de mode algériens avec leurs clients.
+              </p>
+            </div>
+            
+            <div>
+              <h4 className="font-semibold mb-4">Découvrir</h4>
+              <div className="space-y-2">
+                <Link href="/products" className="block text-gray-400 hover:text-white transition-colors">
+                  Tous les produits
+                </Link>
+                <Link href="/shops" className="block text-gray-400 hover:text-white transition-colors">
+                  Créateurs
+                </Link>
+              </div>
+            </div>
+            
+            <div>
+              <h4 className="font-semibold mb-4">Créateurs</h4>
+              <div className="space-y-2">
+                <Link href="/register" className="block text-gray-400 hover:text-white transition-colors">
+                  Devenir créateur
+                </Link>
+                <Link href="/login" className="block text-gray-400 hover:text-white transition-colors">
+                  Se connecter
+                </Link>
+              </div>
+            </div>
+            
+            <div>
+              <h4 className="font-semibold mb-4">Support</h4>
+              <div className="space-y-2">
+                <a href="#" className="block text-gray-400 hover:text-white transition-colors">
+                  Aide
+                </a>
+                <a href="#" className="block text-gray-400 hover:text-white transition-colors">
+                  Contact
+                </a>
+              </div>
+            </div>
+          </div>
+          
+          <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
+            <p>&copy; 2025 Fashion Market. Tous droits réservés.</p>
+          </div>
+        </div>
+      </footer>
+
+
+  )
+}

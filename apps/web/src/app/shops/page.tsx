@@ -23,6 +23,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
+import { ClientLayout } from '@/components/layout/ClientLayout'
 
 interface Shop {
   id: string
@@ -74,25 +75,8 @@ export default function ShopsPage() {
 
   if (loading) {
     return (
+    <ClientLayout>
       <div className="min-h-screen bg-gray-50">
-        {/* Navigation */}
-        <header className="bg-white border-b">
-          <div className="container mx-auto px-4 py-4">
-            <div className="flex justify-between items-center">
-              <Link href="/" className="text-2xl font-bold text-primary">
-                Fashion Market
-              </Link>
-              <nav className="hidden md:flex items-center space-x-6">
-                <Link href="/products" className="text-muted-foreground hover:text-foreground">
-                  Produits
-                </Link>
-                <Link href="/shops" className="font-medium text-primary">
-                  Créateurs
-                </Link>
-              </nav>
-            </div>
-          </div>
-        </header>
 
         <main className="container mx-auto px-4 py-8">
           {/* Header skeleton */}
@@ -123,29 +107,13 @@ export default function ShopsPage() {
           </div>
         </main>
       </div>
+    </ClientLayout>
     )
   }
 
   return (
+  <ClientLayout>
     <div className="min-h-screen bg-gray-50">
-      {/* Navigation */}
-      <header className="bg-white border-b sticky top-0 z-40">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex justify-between items-center">
-            <Link href="/" className="text-2xl font-bold text-primary">
-              Fashion Market
-            </Link>
-            <nav className="hidden md:flex items-center space-x-6">
-              <Link href="/products" className="text-muted-foreground hover:text-foreground">
-                Produits
-              </Link>
-              <Link href="/shops" className="font-medium text-primary">
-                Créateurs
-              </Link>
-            </nav>
-          </div>
-        </div>
-      </header>
 
       <main className="container mx-auto px-4 py-8">
         {/* En-tête */}
@@ -402,5 +370,6 @@ export default function ShopsPage() {
         </div>
       </main>
     </div>
+  </ClientLayout>
   )
 }

@@ -21,6 +21,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
+import { ClientLayout } from '@/components/layout/ClientLayout'
 
 interface Shop {
   id: string
@@ -94,6 +95,7 @@ export default function ShopPage() {
 
   if (loading) {
     return (
+      <ClientLayout>
       <div className="min-h-screen bg-gray-50">
         <header className="bg-white border-b">
           <div className="container mx-auto px-4 py-4">
@@ -128,11 +130,13 @@ export default function ShopPage() {
           </div>
         </main>
       </div>
+      </ClientLayout>
     )
   }
 
   if (error || !shop) {
     return (
+      <ClientLayout>
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <Card className="max-w-md w-full mx-4">
           <CardContent className="pt-6 text-center">
@@ -144,36 +148,20 @@ export default function ShopPage() {
               <p className="text-muted-foreground">{error}</p>
             </div>
             <Button asChild>
-              <Link href="/products">
+              <Link href="/shops">
                 Découvrir d'autres créateurs
               </Link>
             </Button>
           </CardContent>
         </Card>
       </div>
+      </ClientLayout>
     )
   }
 
   return (
+    <ClientLayout>
     <div className="min-h-screen bg-gray-50">
-      {/* Navigation */}
-      <header className="bg-white border-b">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex justify-between items-center">
-            <Link href="/" className="text-2xl font-bold text-primary">
-              Fashion Market
-            </Link>
-            <nav className="hidden md:flex items-center space-x-6">
-              <Link href="/products" className="text-muted-foreground hover:text-foreground">
-                Produits
-              </Link>
-              <Link href="/shops" className="text-muted-foreground hover:text-foreground">
-                Créateurs
-              </Link>
-            </nav>
-          </div>
-        </div>
-      </header>
 
       <main className="container mx-auto px-4 py-8">
         {/* Breadcrumb */}
@@ -411,5 +399,6 @@ export default function ShopPage() {
         )}
       </main>
     </div>
+    </ClientLayout>
   )
 }
