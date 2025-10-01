@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { apiClient } from '@/lib/api'
+import { useCartStore } from '@/stores/cartStore'
 import { 
   ArrowLeft, 
   Heart, 
@@ -15,7 +16,9 @@ import {
   ShoppingBag,
   Truck,
   Shield,
-  MessageCircle
+  MessageCircle,
+  ShoppingCart,
+  Check
 } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -54,6 +57,11 @@ export default function ProductDetailPage() {
   const [selectedImage, setSelectedImage] = useState<string>('')
   const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({})
   const [error, setError] = useState('')
+  const [quantity, setQuantity] = useState(1)
+  const [addedToCart, setAddedToCart] = useState(false)
+
+  // Zustand store
+  const addItem = useCartStore((state) => state.addItem)
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -61,7 +69,7 @@ export default function ProductDetailPage() {
         setLoading(true)
         const data = await apiClient.getProduct(productId)
         setProduct(data.product)
-        
+        console.log(data.product)
         // Définir l'image sélectionnée par défaut
         if (data.product.images?.length > 0) {
           const primaryImage = data.product.images.find((img: ProductImage) => img.is_primary)
@@ -84,6 +92,34 @@ export default function ProductDetailPage() {
       ...prev,
       [type]: value
     }))
+  }
+
+  const handleAddToCart = () => {
+    if (!product) return
+
+    // Vérifier si toutes les variantes sont sélectionnées
+    const variantTypes = [...new Set(product.variants?.map(v => v.type) || [])]
+    if (variantTypes.length > 0 && variantTypes.some(type => !selectedVariants[type])) {
+      alert('Veuillez sélectionner toutes les options disponibles')
+      return
+    }
+
+    // Ajouter au panier
+    for (let i = 0; i < quantity; i++) {
+      addItem({
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        image: selectedImage,
+        shopName: product.shop_name,
+        shopSlug: product.shop_slug,
+        selectedVariants: Object.keys(selectedVariants).length > 0 ? selectedVariants : undefined
+      })
+    }
+
+    // Animation de confirmation
+    setAddedToCart(true)
+    setTimeout(() => setAddedToCart(false), 2000)
   }
 
   const getVariantsByType = (type: string) => {
@@ -286,12 +322,58 @@ export default function ProductDetailPage() {
                 </div>
               )}
 
+              {/* Quantité */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Quantité</label>
+                <div className="flex items-center gap-3">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                  >
+                    -
+                  </Button>
+                  <span className="w-12 text-center font-medium">{quantity}</span>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setQuantity(quantity + 1)}
+                  >
+                    +
+                  </Button>
+                </div>
+              </div>
+
               {/* Actions principales */}
               <div className="space-y-3">
-                <Button size="lg" className="w-full">
+                <Button 
+                  size="lg" 
+                  className="w-full"
+                  onClick={handleAddToCart}
+                  disabled={addedToCart}
+                >
+                  {addedToCart ? (
+                    <>
+                      <Check className="mr-2 h-5 w-5" />
+                      Ajouté au panier !
+                    </>
+                  ) : (
+                    <>
+                      <ShoppingCart className="mr-2 h-5 w-5" />
+                      Ajouter au panier
+                    </>
+                  )}
+                </Button>
+                
+                <Button 
+                  variant="secondary" 
+                  size="lg" 
+                  className="w-full"
+                >
                   <MessageCircle className="mr-2 h-5 w-5" />
                   Contacter le créateur
                 </Button>
+                
                 <Button variant="outline" size="lg" className="w-full" asChild>
                   <Link href={`/shops/${product.shop_slug}`}>
                     Voir la boutique

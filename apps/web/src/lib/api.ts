@@ -197,6 +197,28 @@ class ApiClient {
     return response.data
   }
   
+  // Order
+  // Products
+  async createOrder(data: {
+
+    //voir par quoi remplacer ici 
+    name: string
+    description?: string
+    shopId: string
+    categoryId?: string
+    price?: number
+    variants?: Array<{
+      name: string
+      type: string
+      value: string
+      stockQuantity: number
+    }>
+  })  
+  {
+    const response = await this.client.post('/orders', data)
+    return response.data
   }
+
+}
 
 export const apiClient = new ApiClient()
