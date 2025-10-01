@@ -4,6 +4,7 @@ import { persist } from 'zustand/middleware';
 
 export interface CartItem {
   id: string;
+  productId: string; // ID du produit original
   name: string;
   price: number;
   quantity: number;
@@ -15,13 +16,26 @@ export interface CartItem {
 
 interface CartStore {
   items: CartItem[];
-  addItem: (item: Omit<CartItem, 'quantity'> & Partial<Pick<CartItem, 'shopName' | 'shopSlug' | 'selectedVariants'>>) => void;
+  addItem: (item: Omit<CartItem, 'quantity' | 'id'> & Partial<Pick<CartItem, 'shopName' | 'shopSlug' | 'selectedVariants'>>) => void;
   removeItem: (id: string) => void;
   updateQuantity: (id: string, quantity: number) => void;
   clearCart: () => void;
   getTotalPrice: () => number;
   getTotalItems: () => number;
 }
+
+// Fonction pour créer un ID unique basé sur le produit et ses variantes
+const createCartItemId = (productId: string, variants?: Record<string, string>): string => {
+  if (!variants || Object.keys(variants).length === 0) {
+    return productId;
+  }
+  // Trier les clés pour assurer la cohérence
+  const sortedVariants = Object.keys(variants)
+    .sort()
+    .map(key => `${key}:${variants[key]}`)
+    .join('|');
+  return `${productId}__${sortedVariants}`;
+};
 
 export const useCartStore = create<CartStore>()(
   persist(
@@ -30,7 +44,10 @@ export const useCartStore = create<CartStore>()(
 
       addItem: (item) => {
         const items = get().items;
-        const existingItem = items.find((i) => i.id === item.id);
+        
+        // Créer un ID unique pour ce produit avec ses variantes
+        const cartItemId = createCartItemId(item.productId, item.selectedVariants);
+        const existingItem = items.find((i) => i.id === cartItemId);
 
         // S'assurer que le prix est un nombre
         const price = typeof item.price === 'string' ? parseFloat(item.price) : item.price;
@@ -38,13 +55,20 @@ export const useCartStore = create<CartStore>()(
         if (existingItem) {
           set({
             items: items.map((i) =>
-              i.id === item.id
+              i.id === cartItemId
                 ? { ...i, quantity: i.quantity + 1 }
                 : i
             ),
           });
         } else {
-          set({ items: [...items, { ...item, price, quantity: 1 }] });
+          set({ 
+            items: [...items, { 
+              ...item, 
+              id: cartItemId,
+              price, 
+              quantity: 1 
+            }] 
+          });
         }
       },
 
@@ -71,7 +95,10 @@ export const useCartStore = create<CartStore>()(
 
       getTotalPrice: () => {
         return get().items.reduce(
-          (total, item) => total + item.price * item.quantity,
+          (total, item) => {
+            const price = typeof item.price === 'string' ? parseFloat(item.price) : item.price;
+            return total + (price * item.quantity);
+          },
           0
         );
       },

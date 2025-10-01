@@ -31,8 +31,6 @@ export default function CartPage() {
   }
 
   if (items.length === 0) {
-    
-
     return (
       <ClientLayout>
       <div className="min-h-screen bg-gray-50 py-12 px-4">
@@ -49,14 +47,12 @@ export default function CartPage() {
           </div>
         </div>
       </div>
-    </ClientLayout>
-
+      </ClientLayout>
     );
   }
 
   return (
     <ClientLayout>
-    
     <div className="min-h-screen bg-gray-50 py-12 px-4">
       <div className="max-w-6xl mx-auto">
         <div className="flex justify-between items-center mb-8">
@@ -95,6 +91,23 @@ export default function CartPage() {
                     <p className="text-gray-600">
                       {typeof item.price === 'number' ? item.price.toFixed(2) : parseFloat(item.price).toFixed(2)} €
                     </p>
+                    {item.selectedVariants && Object.keys(item.selectedVariants).length > 0 && (
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {Object.entries(item.selectedVariants).map(([type, value]) => (
+                          <span 
+                            key={type}
+                            className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded"
+                          >
+                            {type === 'size' ? 'Taille' : type === 'color' ? 'Couleur' : type}: {value}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    {item.shopName && (
+                      <p className="text-sm text-gray-500 mt-1">
+                        Vendu par {item.shopName}
+                      </p>
+                    )}
                   </div>
 
                   <div className="flex items-center justify-between mt-4">

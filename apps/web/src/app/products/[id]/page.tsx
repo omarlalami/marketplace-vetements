@@ -69,7 +69,7 @@ export default function ProductDetailPage() {
         setLoading(true)
         const data = await apiClient.getProduct(productId)
         setProduct(data.product)
-        console.log(data.product)
+        
         // Définir l'image sélectionnée par défaut
         if (data.product.images?.length > 0) {
           const primaryImage = data.product.images.find((img: ProductImage) => img.is_primary)
@@ -107,7 +107,7 @@ export default function ProductDetailPage() {
     // Ajouter au panier
     for (let i = 0; i < quantity; i++) {
       addItem({
-        id: product.id,
+        productId: product.id,
         name: product.name,
         price: product.price,
         image: selectedImage,
