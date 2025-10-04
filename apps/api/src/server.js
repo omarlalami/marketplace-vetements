@@ -8,6 +8,7 @@ const authRoutes = require('./routes/auth');
 const shopRoutes = require('./routes/shops');
 const productRoutes = require('./routes/products');
 const categoryRoutes = require('./routes/categories');
+const attributesRoutes = require('./routes/attributes');
 
 const app = express();
 
@@ -25,6 +26,7 @@ app.use('/auth', authRoutes);
 app.use('/shops', shopRoutes);
 app.use('/products', productRoutes);
 app.use('/categories', categoryRoutes);
+app.use('/attributes', attributesRoutes);
 
 /* app.use((req, res, next) => {
   console.log("🔎 New request:")

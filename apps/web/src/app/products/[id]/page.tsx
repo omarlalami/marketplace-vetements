@@ -266,7 +266,7 @@ export default function ProductDetailPage() {
                 
                 {product.price ? (
                   <div className="text-3xl font-bold text-green-600 mb-6">
-                    {product.price}€
+                    {Math.round(product.price)} DZD
                   </div>
                 ) : (
                   <div className="text-lg text-muted-foreground mb-6">

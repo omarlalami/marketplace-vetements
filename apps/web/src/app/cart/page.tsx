@@ -5,10 +5,13 @@ import { useCartStore } from '@/stores/cartStore';
 import Image from 'next/image';
 import { Trash2, Plus, Minus, ShoppingCart } from 'lucide-react';
 import { ClientLayout } from '@/components/layout/ClientLayout'
+import { useRouter } from 'next/navigation'
+import { Button } from '@/components/ui/button'
 
 export default function CartPage() {
   const { items, removeItem, updateQuantity, clearCart, getTotalPrice } = useCartStore();
   const [mounted, setMounted] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     setMounted(true);
@@ -168,9 +171,9 @@ export default function CartPage() {
                 </div>
               </div>
 
-              <button className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition">
+              <Button onClick={() => router.push('/checkout')} className="w-full">
                 Passer la commande
-              </button>
+              </Button>
 
               <p className="text-sm text-gray-500 text-center mt-4">
                 {items.length} article{items.length > 1 ? 's' : ''} dans le panier

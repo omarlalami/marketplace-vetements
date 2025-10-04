@@ -32,10 +32,11 @@ const createProductSchema = Joi.object({
   price: Joi.number().min(0).allow(null, ''),
   variants: Joi.array().items(
     Joi.object({
-      name: Joi.string().required(),
-      type: Joi.string().required(),
-      value: Joi.string().required(),
-      stockQuantity: Joi.number().integer().min(0).default(0)
+      stockQuantity: Joi.number().integer().min(0).default(0),
+      priceModifier: Joi.number().min(0).default(0),
+      attributeValueIds: Joi.array().items(
+        Joi.number().integer().positive() // 👈 accepte des BIGINT
+      ).min(1).required()
     })
   ).default([])
 });

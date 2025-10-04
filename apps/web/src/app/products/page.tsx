@@ -384,7 +384,7 @@ export default function ProductsPage() {
                         <div className="flex justify-between items-center pt-2">
                           {product.price ? (
                             <span className="text-xl font-bold text-green-600">
-                              {product.price}€
+                              {Math.round(product.price)} DZD
                             </span>
                           ) : (
                             <span className="text-sm text-muted-foreground">Prix sur demande</span>

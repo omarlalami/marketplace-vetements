@@ -65,15 +65,44 @@ CREATE TABLE products (
 );
 
 -- Variantes de produits (tailles, couleurs)
-CREATE TABLE product_variants (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
-  name VARCHAR(100) NOT NULL,
-  type VARCHAR(50) NOT NULL,
-  value VARCHAR(100) NOT NULL,
-  stock_quantity INTEGER DEFAULT 0,
-  price_modifier DECIMAL(10,2) DEFAULT 0.00
+-- CREATE TABLE product_variants (
+--   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+--   product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+--   name VARCHAR(100) NOT NULL,
+--   type VARCHAR(50) NOT NULL,
+--   value VARCHAR(100) NOT NULL,
+--   stock_quantity INTEGER DEFAULT 0,
+--   price_modifier DECIMAL(10,2) DEFAULT 0.00
+-- );
+
+CREATE TABLE attributes (
+    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    name VARCHAR(50) UNIQUE NOT NULL -- ex: size, color
 );
+
+CREATE TABLE attribute_values (
+	id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  attribute_id BIGINT NOT NULL,
+  value VARCHAR(50) NOT NULL, -- ex: L, XL, Red
+  FOREIGN KEY (attribute_id) REFERENCES attributes(id) ON DELETE CASCADE
+);
+
+CREATE TABLE product_variants (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+    stock_quantity INTEGER DEFAULT 0,
+	price_modifier DECIMAL(10,2) DEFAULT 0.00
+);
+
+-- Table pivot qui relie un variant avec ses attributs
+CREATE TABLE product_variant_attributes  (
+    product_variant_id UUID NOT NULL REFERENCES product_variants(id) ON DELETE CASCADE,
+    attribute_value_id BIGINT NOT NULL REFERENCES attribute_values(id) ON DELETE CASCADE,
+    UNIQUE(product_variant_id, attribute_value_id)
+);
+
+
+
 
 -- Images des produits
 CREATE TABLE product_images (
