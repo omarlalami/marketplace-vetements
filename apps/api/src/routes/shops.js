@@ -11,6 +11,13 @@ const createShopSchema = Joi.object({
   description: Joi.string().allow('').max(1000)
 });
 
+const updateShopSchema = Joi.object({
+  name: Joi.string().min(2).max(255),
+  description: Joi.string().allow('').max(1000),
+  logoUrl: Joi.string().uri().allow('')
+}).min(1); // At least one field must be provided
+
+
 router.post('/', authenticateToken, async (req, res) => {
   try {
     const { error } = createShopSchema.validate(req.body);
@@ -37,6 +44,80 @@ router.post('/', authenticateToken, async (req, res) => {
   }
 });
 
+// Mettre à jour une boutique
+router.put('/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Validation du body
+    const { error } = updateShopSchema.validate(req.body);
+    if (error) {
+      return res.status(400).json({ error: error.details[0].message });
+    }
+    // Vérifier que la boutique existe et appartient à l'utilisateur
+    const existingShop = await Shop.findById(id);
+    
+    if (!existingShop) {
+      return res.status(404).json({ error: 'Boutique non trouvée' });
+    }
+    if (existingShop.owner_id !== req.user.userId) {
+      return res.status(403).json({ error: 'Vous n\'êtes pas autorisé à modifier cette boutique' });
+    }
+    // Mise à jour
+    const { name, description, logoUrl } = req.body;
+    
+    const updatedShop = await Shop.update(id, {
+      name,
+      description,
+      logoUrl
+    });
+    if (!updatedShop) {
+      return res.status(404).json({ error: 'Échec de la mise à jour' });
+    }
+    res.json({
+      message: 'Boutique mise à jour avec succès',
+      shop: updatedShop
+    });
+  } catch (error) {
+    console.error('Erreur mise à jour boutique:', error);
+    res.status(500).json({ error: 'Erreur lors de la mise à jour de la boutique' });
+  }
+});
+
+// Supprimer une boutique (soft delete)
+router.delete('/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Vérifier que la boutique existe et appartient à l'utilisateur
+    const existingShop = await Shop.findById(id);
+    
+    if (!existingShop) {
+      return res.status(404).json({ error: 'Boutique non trouvée' });
+    }
+
+    if (existingShop.owner_id !== req.user.userId) {
+      return res.status(403).json({ error: 'Vous n\'êtes pas autorisé à supprimer cette boutique' });
+    }
+
+    // Soft delete
+    const deletedShop = await Shop.delete(id);
+
+    if (!deletedShop) {
+      return res.status(404).json({ error: 'Échec de la suppression' });
+    }
+
+    res.json({
+      message: 'Boutique supprimée avec succès',
+      shop: deletedShop
+    });
+
+  } catch (error) {
+    console.error('Erreur suppression boutique:', error);
+    res.status(500).json({ error: 'Erreur lors de la suppression de la boutique' });
+  }
+});
+
 // Récupérer mes boutiques
 router.get('/my-shops', authenticateToken, async (req, res) => {
   try {
@@ -45,6 +126,27 @@ router.get('/my-shops', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Erreur récupération boutiques:', error);
     res.status(500).json({ error: 'Erreur lors de la récupération des boutiques' });
+  }
+});
+
+// Récupérer une boutique par ID (pour l'édition)
+router.get('/edit/:id', authenticateToken, async (req, res) => {
+  try {
+    const shop = await Shop.findById(req.params.id);
+    
+    if (!shop) {
+      return res.status(404).json({ error: 'Boutique non trouvée' });
+    }
+
+    // Vérifier que l'utilisateur est propriétaire
+    if (shop.owner_id !== req.user.userId) {
+      return res.status(403).json({ error: 'Vous n\'êtes pas autorisé à accéder à cette boutique' });
+    }
+
+    res.json({ shop });
+  } catch (error) {
+    console.error('Erreur récupération boutique:', error);
+    res.status(500).json({ error: 'Erreur lors de la récupération de la boutique' });
   }
 });
 

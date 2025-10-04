@@ -17,8 +17,8 @@ const navigation = [
   { name: 'Accueil', href: '/dashboard', icon: Home },
   { name: 'Mes boutiques', href: '/dashboard/shops', icon: Store },
   { name: 'Produits', href: '/dashboard/products', icon: Package },
-  { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
-  { name: 'Paramètres', href: '/dashboard/settings', icon: Settings },
+/*   { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
+  { name: 'Paramètres', href: '/dashboard/settings', icon: Settings }, */
 ]
 
 export function DashboardSidebar() {

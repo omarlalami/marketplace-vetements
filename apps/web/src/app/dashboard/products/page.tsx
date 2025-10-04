@@ -127,6 +127,20 @@ export default function ProductsPage() {
     setFilteredProducts(filtered)
   }, [products, searchTerm, selectedShop])
 
+  const formatPrice = (price: number | string): string => {
+    const num = typeof price === 'string' ? parseFloat(price) : price;
+    
+    if (isNaN(num)) return '0';
+    
+    // Si c'est un nombre entier, pas de décimales
+    if (num === Math.floor(num)) {
+      return num.toString();
+    }
+    
+    // Sinon, afficher avec 2 décimales
+    return num.toFixed(2);
+  }
+
   const handleDelete = async (productId: string, productName: string) => {
     try {
       setDeletingId(productId)
@@ -307,7 +321,7 @@ export default function ProductsPage() {
                   {product.price && (
                     <div className="absolute bottom-2 left-2">
                       <Badge className="bg-green-600 hover:bg-green-700">
-                        {product.price}€
+                        {formatPrice(product.price)} DZD
                       </Badge>
                     </div>
                   )}

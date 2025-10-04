@@ -130,6 +130,20 @@ console.log("fin log des donnees recu")
     setFormData(prev => ({ ...prev, [field]: value }))
   }
 
+  const formatPrice = (price: number | string): string => {
+    const num = typeof price === 'string' ? parseFloat(price) : price;
+    
+    if (isNaN(num)) return '0';
+    
+    // Si c'est un nombre entier, pas de décimales
+    if (num === Math.floor(num)) {
+      return num.toString();
+    }
+    
+    // Sinon, afficher avec 2 décimales
+    return num.toFixed(2);
+  }
+
   const addVariant = () => {
     const newVariant: Variant = {
       id: `new-${Date.now()}-${Math.random()}`,
@@ -384,14 +398,19 @@ console.log("fin log des donnees recu")
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="price">Prix de base (€)</Label>
+                      <Label htmlFor="price">Prix de base (DZD)</Label>
                       <Input
                         id="price"
                         type="number"
                         step="0.01"
                         min="0"
-                        value={formData.price}
+                        value={formatPrice(formData.price)}
                         onChange={(e) => handleInputChange('price', e.target.value)}
+                        onBlur={(e) => {
+                          // Formater quand l'utilisateur quitte le champ
+                          const formatted = formatPrice(e.target.value);
+                          handleInputChange('price', formatted);
+                        }}
                         placeholder="0.00"
                       />
                     </div>
@@ -517,7 +536,7 @@ console.log("fin log des donnees recu")
                         </div>
                         
                         <div>
-                          <Label>Modificateur de prix (€)</Label>
+                          <Label>Modificateur de prix</Label>
                           <Input
                             type="number"
                             step="0.01"
@@ -527,9 +546,15 @@ console.log("fin log des donnees recu")
                           />
                           {formData.price && variant.price_modifier !== 0 && (
                             <p className="text-xs text-muted-foreground mt-1">
-                              Prix final: {(parseFloat(formData.price) + variant.price_modifier).toFixed(2)}€
+                              Prix final de cette finition : {formatPrice(variant.price_modifier)} DZD
                             </p>
                           )}
+                          {formData.price && variant.price_modifier == 0 && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Prix final de cette finition : {formatPrice(formData.price)} DZD
+                            </p>
+                          )}
+
                         </div>
                       </div>
                     </div>
@@ -641,7 +666,9 @@ console.log("fin log des donnees recu")
                   <p className="font-medium">{formData.name}</p>
                   {formData.price && (
                     <p className="text-lg font-bold text-green-600">
-                      À partir de {formData.price}€
+                      <span>
+                        À partir de {formatPrice(formData.price)} DZD
+                      </span>
                     </p>
                   )}
                   <p className="text-sm text-muted-foreground">

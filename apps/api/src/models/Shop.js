@@ -50,6 +50,64 @@ class Shop {
     const result = await pool.query(query, [ownerId]);
     return result.rows;
   }
+
+    static async update(id, { name, description, logoUrl }) {
+    // Build dynamic query based on provided fields
+    const updates = [];
+    const values = [];
+    let paramCount = 1;
+
+    if (name !== undefined) {
+      // Generate new slug if name is being updated
+      const slug = name.toLowerCase()
+        .replace(/[^a-z0-9]/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '');
+      
+      updates.push(`name = $${paramCount++}`);
+      values.push(name);
+      updates.push(`slug = $${paramCount++}`);
+      values.push(slug);
+    }
+
+    if (description !== undefined) {
+      updates.push(`description = $${paramCount++}`);
+      values.push(description);
+    }
+
+    if (logoUrl !== undefined) {
+      updates.push(`logo_url = $${paramCount++}`);
+      values.push(logoUrl);
+    }
+
+    // Always update the updated_at timestamp
+    updates.push(`updated_at = CURRENT_TIMESTAMP`);
+
+    // Add shop id as last parameter
+    values.push(id);
+
+    const query = `
+      UPDATE shops 
+      SET ${updates.join(', ')}
+      WHERE id = $${paramCount} AND is_active = true
+      RETURNING *
+    `;
+
+    const result = await pool.query(query, values);
+    return result.rows[0];
+  }
+    // Soft delete
+  static async delete(id) {
+    const query = `
+      UPDATE shops
+      SET is_active = false, updated_at = CURRENT_TIMESTAMP
+      WHERE id = $1
+      RETURNING *
+    `;
+    const result = await pool.query(query, [id]);
+    return result.rows[0];
+  }
+  
 }
 
 module.exports = Shop;

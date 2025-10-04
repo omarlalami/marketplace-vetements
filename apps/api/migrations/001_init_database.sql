@@ -64,17 +64,6 @@ CREATE TABLE products (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Variantes de produits (tailles, couleurs)
--- CREATE TABLE product_variants (
---   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
---   product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
---   name VARCHAR(100) NOT NULL,
---   type VARCHAR(50) NOT NULL,
---   value VARCHAR(100) NOT NULL,
---   stock_quantity INTEGER DEFAULT 0,
---   price_modifier DECIMAL(10,2) DEFAULT 0.00
--- );
-
 CREATE TABLE attributes (
     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     name VARCHAR(50) UNIQUE NOT NULL -- ex: size, color

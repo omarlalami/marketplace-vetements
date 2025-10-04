@@ -227,7 +227,7 @@ export default function CreateProductPage() {
             {/* Sélection des attributs */}
             <Card>
               <CardHeader>
-                <CardTitle>Attributs du produit</CardTitle>
+                <CardTitle>Fintions du produit</CardTitle>
                  <CardDescription>
                   Gérez les combinaisons d'attributs (taille, couleur, etc.)
                 </CardDescription>
@@ -296,7 +296,7 @@ export default function CreateProductPage() {
                           />
                         </div>
                         <div>
-                          <Label>Prix (+/-)</Label>
+                          <Label>Change le prix pour cette finition (+/-)</Label>
                           <Input
                             type="number"
                             step="0.01"

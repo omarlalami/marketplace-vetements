@@ -109,6 +109,25 @@ class ApiClient {
     const response = await this.client.get(`/shops/${slug}`)
     return response.data
   }
+  
+  async getShopForEdit(id: string) {
+    const response = await this.client.get(`/shops/edit/${id}`)
+    return response.data
+  }
+
+  async updateShop(id: string, data: {
+    name?: string
+    description?: string
+    logoUrl?: string
+  }) {
+    const response = await this.client.put(`/shops/${id}`, data)
+    return response.data
+  }
+  
+  async deleteShop(id: string) {
+    const response = await this.client.delete(`/shops/${id}`)
+    return response.data
+  }
 
   async getAllShops(params?: {
     search?: string
