@@ -58,7 +58,6 @@ CREATE TABLE products (
   shop_id UUID NOT NULL REFERENCES shops(id),
   created_by UUID NOT NULL REFERENCES users(id),
   category_id UUID REFERENCES categories(id),
-  price DECIMAL(10,2),
   is_active BOOLEAN DEFAULT TRUE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -77,10 +76,10 @@ CREATE TABLE attribute_values (
 );
 
 CREATE TABLE product_variants (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
-    stock_quantity INTEGER DEFAULT 0,
-	price_modifier DECIMAL(10,2) DEFAULT 0.00
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+  stock_quantity INTEGER DEFAULT 0,
+	price DECIMAL(10,2) DEFAULT 0.00
 );
 
 -- Table pivot qui relie un variant avec ses attributs
@@ -110,3 +109,94 @@ CREATE INDEX idx_products_category ON products(category_id);
 CREATE INDEX idx_product_variants_product_id ON product_variants(product_id);
 CREATE INDEX idx_shops_slug ON shops(slug);
 CREATE INDEX idx_categories_slug ON categories(slug);
+
+
+
+-- Table des commandes (1 commande = 1 shop)
+CREATE TABLE orders (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  order_number VARCHAR(50) UNIQUE NOT NULL, -- Ex: ORD-2024-001234
+  user_id UUID NOT NULL REFERENCES users(id),
+  shop_id UUID NOT NULL REFERENCES shops(id), -- ⚡ Une commande appartient à UN seul shop
+  
+  status VARCHAR(50) DEFAULT 'pending', -- pending, confirmed, processing, shipped, delivered, cancelled, refunded
+  
+  -- Montants
+  subtotal DECIMAL(10,2) NOT NULL, -- Total des items
+  shipping_cost DECIMAL(10,2) DEFAULT 0,
+  tax DECIMAL(10,2) DEFAULT 0,
+  total_amount DECIMAL(10,2) NOT NULL, -- subtotal + shipping + tax
+  
+  -- Informations de livraison
+  shipping_address JSONB NOT NULL, -- {name, street, city, postal_code, country, phone}
+  
+  -- Informations de paiement
+  payment_method VARCHAR(50), -- card, paypal, bank_transfer
+  payment_status VARCHAR(50) DEFAULT 'pending', -- pending, paid, failed, refunded
+  payment_id VARCHAR(255), -- ID de transaction externe (Stripe, PayPal, etc.)
+  
+  notes TEXT, -- Notes du client
+  
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Articles de commande
+CREATE TABLE order_items (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  order_id UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+  product_id UUID NOT NULL REFERENCES products(id),
+  product_variant_id UUID NOT NULL REFERENCES product_variants(id),
+  
+  quantity INTEGER NOT NULL CHECK (quantity > 0),
+  unit_price DECIMAL(10,2) NOT NULL, -- Prix unitaire au moment de la commande
+  subtotal DECIMAL(10,2) NOT NULL, -- unit_price * quantity
+  
+  -- Snapshot des infos produit (au cas où le produit est modifié/supprimé)
+  product_name VARCHAR(255) NOT NULL,
+  product_image_url TEXT,
+  variant_attributes JSONB, -- Ex: [{"attribute": "Taille", "value": "L"}, {"attribute": "Couleur", "value": "Rouge"}]
+  
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Table du panier (avant commande)
+/* CREATE TABLE cart (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES users(id),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE cart_items (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  cart_id UUID NOT NULL REFERENCES cart(id) ON DELETE CASCADE,
+  product_id UUID NOT NULL REFERENCES products(id),
+  product_variant_id UUID NOT NULL REFERENCES product_variants(id),
+  shop_id UUID NOT NULL REFERENCES shops(id), -- ⚡ Important pour grouper par shop
+  quantity INTEGER NOT NULL CHECK (quantity > 0),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(cart_id, product_variant_id) -- Un même variant ne peut être qu'une fois dans le panier
+); */
+
+-- Historique des statuts de commande
+CREATE TABLE order_status_history (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  order_id UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+  status VARCHAR(50) NOT NULL,
+  comment TEXT,
+  created_by UUID REFERENCES users(id), -- Qui a changé le statut (vendeur/admin)
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Index pour les performances
+CREATE INDEX idx_orders_user_id ON orders(user_id);
+CREATE INDEX idx_orders_shop_id ON orders(shop_id);
+CREATE INDEX idx_orders_status ON orders(status);
+CREATE INDEX idx_orders_created_at ON orders(created_at DESC);
+CREATE INDEX idx_order_items_order_id ON order_items(order_id);
+CREATE INDEX idx_order_items_product_variant_id ON order_items(product_variant_id);
+/* CREATE INDEX idx_cart_user_id ON cart(user_id);
+CREATE INDEX idx_cart_items_cart_id ON cart_items(cart_id);
+CREATE INDEX idx_cart_items_shop_id ON cart_items(shop_id); */

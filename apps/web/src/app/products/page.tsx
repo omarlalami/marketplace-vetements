@@ -105,6 +105,20 @@ export default function ProductsPage() {
     setFilters(prev => ({ ...prev, [key]: value }))
   }
 
+  const formatPrice = (price: number | string): string => {
+    const num = typeof price === 'string' ? parseFloat(price) : price;
+    
+    if (isNaN(num)) return '0';
+    
+    // Si c'est un nombre entier, pas de décimales
+    if (num === Math.floor(num)) {
+      return num.toString();
+    }
+    
+    // Sinon, afficher avec 2 décimales
+    return num.toFixed(2);
+  }
+
   const clearFilters = () => {
     setFilters({
       search: '',
@@ -334,20 +348,20 @@ export default function ProductsPage() {
                         )}
                         
                         {/* Badge prix */}
-                        {product.price && (
+                        {/* {product.price && (
                           <div className="absolute top-3 left-3">
                             <Badge className="bg-white text-black hover:bg-white">
-                              {product.price}€
+                              {formatPrice(product.price)} DZD
                             </Badge>
                           </div>
-                        )}
+                        )} */}
                         
                         {/* Bouton favoris */}
-                        <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {/* <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
                           <Button size="icon" variant="secondary" className="h-8 w-8">
                             <Heart className="h-4 w-4" />
                           </Button>
-                        </div>
+                        </div> */}
                       </div>
                     </Link>
                     
@@ -384,17 +398,17 @@ export default function ProductsPage() {
                         <div className="flex justify-between items-center pt-2">
                           {product.price ? (
                             <span className="text-xl font-bold text-green-600">
-                              {Math.round(product.price)} DZD
+                              {formatPrice(product.price)} DZD
                             </span>
                           ) : (
                             <span className="text-sm text-muted-foreground">Prix sur demande</span>
                           )}
                           
-                          <Button size="sm" asChild>
+{/*                           <Button size="sm" asChild>
                             <Link href={`/products/${product.id}`}>
                               Voir détails
                             </Link>
-                          </Button>
+                          </Button> */}
                         </div>
                       </div>
                     </CardContent>

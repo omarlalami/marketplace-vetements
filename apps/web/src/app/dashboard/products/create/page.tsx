@@ -22,6 +22,7 @@ export default function CreateProductPage() {
     shopId: '',
     categoryId: '',
     price: '',
+    stockQuantity :'',
   })
 
   const [shops, setShops] = useState<any[]>([])
@@ -116,9 +117,10 @@ export default function CreateProductPage() {
         shopId: formData.shopId,
         categoryId: formData.categoryId || undefined,
         price: formData.price ? parseFloat(formData.price) : undefined,
+        stockQuantity : formData.stockQuantity ? parseFloat(formData.stockQuantity) : undefined,
         variants: generatedVariants.map(v => ({
-          stockQuantity: v.stockQuantity,
-          priceModifier: v.priceModifier,
+          stockQuantity: formData.stockQuantity ? v.stockQuantity : undefined,
+          price: formData.price ? parseFloat(formData.price) : undefined,
           attributeValueIds: v.attributes.map((a: { valueId: string }) => a.valueId),
         })),
       }
@@ -212,14 +214,25 @@ export default function CreateProductPage() {
                   </div>
                 </div>
 
-                <div>
-                  <Label>Prix de base (€)</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={formData.price}
-                    onChange={(e) => handleInputChange('price', e.target.value)}
-                  />
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <Label>Prix *</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={formData.price}
+                      onChange={(e) => handleInputChange('price', e.target.value)}
+                    />
+                  </div>
+
+                  <div>
+                    <Label>Stock *</Label>
+                    <Input
+                      type="number"
+                      value={formData.stockQuantity}
+                      onChange={(e) => handleInputChange('stockQuantity', e.target.value)}
+                    />
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -227,7 +240,7 @@ export default function CreateProductPage() {
             {/* Sélection des attributs */}
             <Card>
               <CardHeader>
-                <CardTitle>Fintions du produit</CardTitle>
+                <CardTitle>Creer des variantes du produit</CardTitle>
                  <CardDescription>
                   Gérez les combinaisons d'attributs (taille, couleur, etc.)
                 </CardDescription>
@@ -258,7 +271,7 @@ export default function CreateProductPage() {
             </Card>
 
             {/* Variantes générées */}
-            {generatedVariants.length > 0 && (
+            {/* {generatedVariants.length > 0 && (
               <Card>
                 <CardHeader>
                   <CardTitle>Variantes générées automatiquement</CardTitle>
@@ -317,7 +330,7 @@ export default function CreateProductPage() {
                   ))}
                 </CardContent>
               </Card>
-            )}
+            )} */}
           </div>
 
           {/* Sidebar */}
@@ -339,7 +352,7 @@ export default function CreateProductPage() {
               <CardContent className="pt-6">
                 <Button
                   type="submit"
-                  disabled={loading || !formData.name || !formData.shopId}
+                  disabled={loading || !formData.name || !formData.shopId || !formData.price || !formData.stockQuantity}
                   className="w-full"
                 >
                   {loading ? 'Création...' : 'Créer le produit'}

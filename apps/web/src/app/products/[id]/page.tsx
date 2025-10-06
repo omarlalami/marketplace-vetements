@@ -91,6 +91,20 @@ export default function ProductDetailPage() {
     setSelectedAttributes((prev) => ({ ...prev, [attrName]: value }))
   }
 
+  const formatPrice = (price: number | string): string => {
+    const num = typeof price === 'string' ? parseFloat(price) : price;
+    
+    if (isNaN(num)) return '0';
+    
+    // Si c'est un nombre entier, pas de décimales
+    if (num === Math.floor(num)) {
+      return num.toString();
+    }
+    
+    // Sinon, afficher avec 2 décimales
+    return num.toFixed(2);
+  }
+
   // Trouver la variante correspondant à la sélection actuelle
   const selectedVariant = product?.variants?.find((v) =>
     v.attributes.every((a) => selectedAttributes[a.attribute] === a.value)
@@ -98,7 +112,7 @@ export default function ProductDetailPage() {
 
   const finalPrice =
     product && selectedVariant
-      ? product.price + (selectedVariant.price_modifier || 0)
+      ? (selectedVariant.price_modifier || 0)
       : product?.price
 
   const handleAddToCart = () => {
@@ -189,7 +203,7 @@ export default function ProductDetailPage() {
         <div className="space-y-6">
           <h1 className="text-3xl font-bold">{product.name}</h1>
           <p className="text-xl text-green-600 font-semibold">
-            {Number(finalPrice ?? product.price ?? 0).toFixed(2)} DZD
+            {formatPrice(finalPrice ?? product.price ?? 0)} DZD
           </p>
 
           {/* Sélection d’attributs façon Nike */}
@@ -316,7 +330,7 @@ export default function ProductDetailPage() {
                             </div>
                             <div>
                               <strong>Prix :</strong>{' '}
-                              {product.price + matchedVariant.price_modifier} DZD
+                              {formatPrice(matchedVariant.price_modifier)} DZD
                             </div>
                           </>
                         )

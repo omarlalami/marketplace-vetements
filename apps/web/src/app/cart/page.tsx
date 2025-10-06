@@ -90,7 +90,7 @@ export default function CartPage() {
 
                 <div className="flex-1 flex flex-col justify-between">
                   <div>
-                    <h3 className="font-semibold text-lg mb-1">{item.name}</h3>
+                    <h3 className="font-semibold text-lg mb-1">Boutique : {item.shopName}</h3>
                     <p className="text-gray-600">
                       {typeof item.price === 'number' ? item.price.toFixed(2) : parseFloat(item.price).toFixed(2)} €
                     </p>
@@ -108,7 +108,7 @@ export default function CartPage() {
                     )}
                     {item.shopName && (
                       <p className="text-sm text-gray-500 mt-1">
-                        Vendu par {item.shopName}
+                        Article de mode : {item.name}
                       </p>
                     )}
                   </div>
@@ -162,9 +162,12 @@ export default function CartPage() {
                   <span>{getTotalPrice().toFixed(2)} €</span>
                 </div>
                 <div className="flex justify-between text-gray-600">
+                  <span>Les tarifs de livraisons seront communiqués par les différentes Boutiques</span>
+                </div> 
+{/*                 <div className="flex justify-between text-gray-600">
                   <span>Livraison</span>
                   <span>Gratuite</span>
-                </div>
+                </div> */}
                 <div className="border-t pt-3 flex justify-between text-lg font-bold">
                   <span>Total</span>
                   <span>{getTotalPrice().toFixed(2)} €</span>

@@ -12,7 +12,7 @@ INSERT INTO categories (name, slug, description, parent_id) VALUES
 ('Robes', 'robes', 'Robes pour femme', (SELECT id FROM categories WHERE slug = 'femme')),
 ('Tops', 'tops', 'Tops pour femme', (SELECT id FROM categories WHERE slug = 'femme'));
 
-INSERT INTO attributes (name) VALUES ('taille'), ('couleur'), ('pointure');
+INSERT INTO attributes (name) VALUES ('Taille'), ('Couleur'), ('Pointure');
 
 INSERT INTO attribute_values (attribute_id, value) VALUES
 (1, 'XS'), (1, 'S'), (1, 'M'), (1, 'L'), (1, 'XL');

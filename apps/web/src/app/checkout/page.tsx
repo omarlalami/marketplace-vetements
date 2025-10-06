@@ -22,8 +22,7 @@ export default function CheckoutPage() {
   const total = getTotalPrice()
   const router = useRouter()
 
-  const { address, setAddress, isSubmitting, setIsSubmitting, error, setError } =
-    useCheckoutStore()
+  const { address, setAddress, isSubmitting, setIsSubmitting, error, setError } = useCheckoutStore()
 
   const submitOrder = async () => {
     setIsSubmitting(true)
@@ -32,21 +31,22 @@ export default function CheckoutPage() {
     const payload = { items, address, total }
 
     try {
-      const res = await apiClient.createOrder(payload)
+      const result = await apiClient.createOrder(payload)
 
-      if (!res.ok) {
-        const errJson = await res.json()
-        throw new Error(
-          errJson.message || 'Erreur pendant la validation de la commande'
-        )
+      if (!result.ok) {
+        throw new Error(result.message || 'Erreur pendant la validation de la commande')
       }
 
-      const order = await res.json()
+      // Vider le panier
       clearCart()
-      router.push(`/order/confirmation/${order.id}`)
+      
+      // Rediriger vers la page de confirmation
+      // Si plusieurs commandes, on redirige vers la première
+      router.push(`/order/confirmation/${result.id}`)
+
     } catch (err: any) {
       console.error('Erreur submit order', err)
-      setError(err.message)
+      setError(err.response?.data?.message || err.message)
     } finally {
       setIsSubmitting(false)
     }
@@ -107,7 +107,7 @@ export default function CheckoutPage() {
                 </div>
 
                 <div>
-                  <Label>Adresse (ligne 1)</Label>
+                  <Label>Adresse</Label>
                   <Input
                     value={address.line || ''}
                     onChange={(e) =>

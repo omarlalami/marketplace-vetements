@@ -37,7 +37,7 @@ interface VariantAttributeValue {
 interface Variant {
   id: string
   stock_quantity: number
-  price_modifier: number
+  price: number
   attributes: VariantAttributeValue[]
 }
 
@@ -98,7 +98,7 @@ console.log("fin log des donnees recu")
         const formattedVariants = (product.variants || []).map((v: any) => ({
           id: v.id || `temp-${Date.now()}-${Math.random()}`,
           stock_quantity: v.stock_quantity || 0,
-          price_modifier: parseFloat(v.price_modifier || '0'),
+          price: parseFloat(v.price || '0'),
           attributes: (v.attributes || []).map((attr: any) => ({
             value_id: attr.value_id,
             attribute_id: attr.value_id || '',
@@ -148,7 +148,7 @@ console.log("fin log des donnees recu")
     const newVariant: Variant = {
       id: `new-${Date.now()}-${Math.random()}`,
       stock_quantity: 0,
-      price_modifier: 0,
+      price: 0,
       attributes: []
     }
     setVariants(prev => [...prev, newVariant])
@@ -158,7 +158,7 @@ console.log("fin log des donnees recu")
     setVariants(prev => prev.filter(variant => variant.id !== id))
   }
 
-  const updateVariantField = (variantId: string, field: 'stock_quantity' | 'price_modifier', value: number) => {
+  const updateVariantField = (variantId: string, field: 'stock_quantity' | 'price', value: number) => {
     setVariants(prev => prev.map(variant => 
       variant.id === variantId ? { ...variant, [field]: value } : variant
     ))
@@ -245,7 +245,7 @@ console.log("fin log des donnees recu")
         price: formData.price ? parseFloat(formData.price) : undefined,
         variants: variants.map(v => ({
           stockQuantity: v.stock_quantity,
-          priceModifier: v.price_modifier,
+          price: v.price,
           attributes: v.attributes.map(attr => attr.value_id)
         }))
       }
@@ -397,6 +397,7 @@ console.log("fin log des donnees recu")
                       </Select>
                     </div>
 
+                   {/* A REMPLACER PAR SELECTION BOUTIQUE
                     <div className="space-y-2">
                       <Label htmlFor="price">Prix de base (DZD)</Label>
                       <Input
@@ -413,7 +414,7 @@ console.log("fin log des donnees recu")
                         }}
                         placeholder="0.00"
                       />
-                    </div>
+                    </div> */}
                   </div>
                 </form>
               </CardContent>
@@ -536,24 +537,14 @@ console.log("fin log des donnees recu")
                         </div>
                         
                         <div>
-                          <Label>Modificateur de prix</Label>
+                          <Label>Prix</Label>
                           <Input
                             type="number"
                             step="0.01"
-                            value={variant.price_modifier}
-                            onChange={(e) => updateVariantField(variant.id, 'price_modifier', parseFloat(e.target.value) || 0)}
+                            value={variant.price}
+                            onChange={(e) => updateVariantField(variant.id, 'price', parseFloat(e.target.value) || 0)}
                             placeholder="0.00"
                           />
-                          {formData.price && variant.price_modifier !== 0 && (
-                            <p className="text-xs text-muted-foreground mt-1">
-                              Prix final de cette finition : {formatPrice(variant.price_modifier)} DZD
-                            </p>
-                          )}
-                          {formData.price && variant.price_modifier == 0 && (
-                            <p className="text-xs text-muted-foreground mt-1">
-                              Prix final de cette finition : {formatPrice(formData.price)} DZD
-                            </p>
-                          )}
 
                         </div>
                       </div>
@@ -664,13 +655,13 @@ console.log("fin log des donnees recu")
                 </CardHeader>
                 <CardContent className="space-y-2">
                   <p className="font-medium">{formData.name}</p>
-                  {formData.price && (
+{/*                   {formData.price && (
                     <p className="text-lg font-bold text-green-600">
                       <span>
                         À partir de {formatPrice(formData.price)} DZD
                       </span>
                     </p>
-                  )}
+                  )} */}
                   <p className="text-sm text-muted-foreground">
                     {variants.length} variante{variants.length > 1 ? 's' : ''}
                   </p>

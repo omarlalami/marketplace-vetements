@@ -1,22 +1,11 @@
 // API Client complet
 
 import axios, { AxiosInstance } from 'axios'
-interface Variant {
-  id: string
-  stock_quantity: number
-  price_modifier: number
-  attributes: VariantAttributeValue[]
-}
-interface VariantAttributeValue {
-  value_id: string
-  attribute_id: string
-  attribute_name: string
-  value: string
-}
+
 interface VariantInput {
   id?: string // optionnel pour les nouvelles variantes
   stockQuantity: number
-  priceModifier: number
+  price: number
   attributes: string[] // on va tester en remplacant string par number
 }
 class ApiClient {
@@ -146,12 +135,14 @@ async createProduct(data: {
   shopId: string
   categoryId?: string
   price?: number
+  stockQuantity ?: number
   variants?: Array<{
     stockQuantity: number
-    priceModifier: number
+    price?: number
     attributeValueIds: string[]
   }>
 }) {
+    console.log("valeur ici " + JSON.stringify(data))
   const response = await this.client.post('/products', data)
   return response.data
 }
@@ -208,21 +199,21 @@ async createProduct(data: {
     return response.data
   }
 
-async updateProduct(
-  id: string,
-  data: {
-    name: string
-    description?: string
-    categoryId?: string
-    price?: number
-    variants?: VariantInput[] // Utilisez VariantInput au lieu de Variant
+  // Méthode pour mettre à jour un produit
+  async updateProduct(
+    id: string,
+    data: {
+      name: string
+      description?: string
+      categoryId?: string
+      variants?: VariantInput[] // Utilisez VariantInput au lieu de Variant
+    }
+  ) {
+          console.log("donne envoyer de l'api")
+        console.log(data)
+    const response = await this.client.put(`/products/${id}`, data)
+    return response.data
   }
-) {
-        console.log("donne envoyer de l'api")
-      console.log(data)
-  const response = await this.client.put(`/products/${id}`, data)
-  return response.data
-}
 
   async deleteProductImage(productId: string, imageId: string) {
     const response = await this.client.delete(`/products/${productId}/images/${imageId}`)
@@ -235,11 +226,38 @@ async updateProduct(
   }
   
   // Order
-   async createOrder(data:{})  
-  {
-    const response = await this.client.post('/orders', data)
-    return response.data
-  } 
+async createOrder(payload: {
+  items: Array<{
+    id: string
+    productId: string
+    name: string
+    price: number
+    quantity: number
+    image?: string
+    shopName?: string
+    shopSlug?: string
+    selectedVariants?: Record<string, string>
+  }>
+  address: {
+    firstName: string
+    lastName: string
+    line: string
+    city: string
+    postalCode: string
+    country: string
+    phone: string
+    email: string
+  }
+  total: number
+}) {
+  const response = await this.client.post('/orders', payload)
+  return response.data
+}
+
+async getMyOrders(params?: { status?: string; limit?: number }) {
+  const response = await this.client.get('/orders/my-orders', { params })
+  return response.data
+}
 
   // ⚡ Récupérer les attributs (avec leurs valeurs)
   async getAttributes() {

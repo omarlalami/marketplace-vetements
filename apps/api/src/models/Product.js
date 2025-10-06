@@ -10,8 +10,8 @@ static async create(productData) {
 
     // 🔹 Création du produit
     const productQuery = `
-      INSERT INTO products (name, description, shop_id, created_by, category_id, price)
-      VALUES ($1, $2, $3, $4, $5, $6)
+      INSERT INTO products (name, description, shop_id, created_by, category_id)
+      VALUES ($1, $2, $3, $4, $5)
       RETURNING *
     `;
 
@@ -21,7 +21,6 @@ static async create(productData) {
       productData.shopId,
       productData.createdBy,
       productData.categoryId || null,
-      productData.price || 0,
     ]);
 
     const product = productResult.rows[0];
@@ -31,15 +30,15 @@ static async create(productData) {
       for (const variant of productData.variants) {
         // Création de la variante
         const variantQuery = `
-          INSERT INTO product_variants (product_id, stock_quantity, price_modifier)
+          INSERT INTO product_variants (product_id, stock_quantity, price)
           VALUES ($1, $2, $3)
           RETURNING id
         `;
 
         const variantResult = await client.query(variantQuery, [
           product.id,
-          variant.stockQuantity ?? 0,
-          variant.priceModifier ?? 0,
+          productData.stockQuantity ?? 0,
+          productData.price ?? 0,
         ]);
 
         const variantId = variantResult.rows[0].id;
@@ -57,6 +56,22 @@ static async create(productData) {
           }
         }
       }
+    } else {
+      // ⚡ PRODUIT SIMPLE : Créer une variante par défaut
+      // Cette variante n'a pas d'attributs, juste le stock et prix de base
+      const defaultVariantQuery = `
+        INSERT INTO product_variants (product_id, stock_quantity, price)
+        VALUES ($1, $2, $3)
+        RETURNING id
+      `;
+
+      await client.query(defaultVariantQuery, [
+        product.id,
+        productData.stockQuantity || 0,
+        productData.price 
+      ]);
+      
+      // Pas d'attributs pour une variante par défaut
     }
 
     await client.query('COMMIT');
@@ -86,7 +101,7 @@ static async create(productData) {
     if (product) {
       // 🔹 Charger les variantes
       const variantsQuery = `
-        SELECT v.id, v.stock_quantity, v.price_modifier
+        SELECT v.id, v.stock_quantity, v.price
         FROM product_variants v
         WHERE v.product_id = $1
       `;
@@ -156,7 +171,6 @@ static async findByShopId(shopId) {
       p.id,
       p.name,
       p.description,
-      p.price,
       p.created_at,
       s.name AS shop_name,
       s.slug AS shop_slug,
@@ -173,7 +187,7 @@ static async findByShopId(shopId) {
           DISTINCT jsonb_build_object(
             'id', v.id,
             'stock_quantity', v.stock_quantity,
-            'price_modifier', v.price_modifier
+            'price', v.price
           )
         ) FILTER (WHERE v.id IS NOT NULL), '[]'
       ) AS variants
@@ -219,7 +233,7 @@ static async updateById(id, productData) {
     // 🔹 Mettre à jour le produit
     const productQuery = `
       UPDATE products 
-      SET name = $2, description = $3, category_id = $4, price = $5, updated_at = NOW()
+      SET name = $2, description = $3, category_id = $4,  updated_at = NOW()
       WHERE id = $1
       RETURNING *
     `;
@@ -229,7 +243,6 @@ static async updateById(id, productData) {
       productData.name,
       productData.description,
       productData.categoryId,
-      productData.price,
     ]);
 
     const product = productResult.rows[0];
@@ -259,10 +272,10 @@ static async updateById(id, productData) {
       for (const variant of productData.variants) {
         console.log("variant boucle : " + variant)
         console.log(JSON.stringify(variant))
-                        console.log("stock quantite valeur inserer" + JSON.stringify(variant.stockQuantity))
+        console.log("stock quantite valeur inserer" + JSON.stringify(variant.stockQuantity))
 
         const variantQuery = `
-          INSERT INTO product_variants (product_id, stock_quantity, price_modifier)
+          INSERT INTO product_variants (product_id, stock_quantity, price)
           VALUES ($1, $2, $3)
           RETURNING id
         `;
@@ -270,7 +283,7 @@ static async updateById(id, productData) {
         const variantResult = await client.query(variantQuery, [
           id,
           variant.stockQuantity || 0,
-          variant.priceModifier || 0,
+          variant.price || 0,
         ]);
 
 
