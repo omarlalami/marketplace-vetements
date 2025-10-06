@@ -1,6 +1,6 @@
 const express = require('express');
 const Order = require('../models/Order');
-const { authenticateToken } = require('../middleware/auth');
+const { authenticateToken, optionalAuth } = require('../middleware/auth');
 const Joi = require('joi');
 
 const router = express.Router();
@@ -35,7 +35,7 @@ const createOrderSchema = Joi.object({
 });
 
 // Créer une commande
-router.post('/', authenticateToken, async (req, res) => {
+router.post('/', optionalAuth, async (req, res) => {
   try {
     // Validation
     const { error } = createOrderSchema.validate(req.body);
@@ -49,7 +49,7 @@ router.post('/', authenticateToken, async (req, res) => {
     const payload = req.body;
 
     // Créer les commandes
-    const orders = await Order.createOrder(req.user.userId, payload);
+    const orders = await Order.createOrder(req.user ? req.user.userId : null, payload);
 
     res.status(201).json({
       ok: true,
@@ -114,5 +114,27 @@ router.get('/my-orders', authenticateToken, async (req, res) => {
   }
 });
 
+// Récupérer une commande par ID
+router.get('/:orderId', optionalAuth, async (req, res) => {
+  try {
+    const { orderId } = req.params;
+
+    const order = await Order.findById(orderId, req.user ? req.user.userId : null);
+    if (!order) {
+      return res.status(404).json({ ok: false, message: 'Commande non trouvée' });
+    }
+
+    res.json({
+      ok: true,
+      order
+    });
+  } catch (error) {
+    console.error('Erreur récupération commande:', error);
+    res.status(500).json({
+      ok: false,
+      message: 'Erreur lors de la récupération de la commande'
+    });
+  }
+});
 
 module.exports = router;

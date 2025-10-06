@@ -226,38 +226,44 @@ async createProduct(data: {
   }
   
   // Order
-async createOrder(payload: {
-  items: Array<{
-    id: string
-    productId: string
-    name: string
-    price: number
-    quantity: number
-    image?: string
-    shopName?: string
-    shopSlug?: string
-    selectedVariants?: Record<string, string>
-  }>
-  address: {
-    firstName: string
-    lastName: string
-    line: string
-    city: string
-    postalCode: string
-    country: string
-    phone: string
-    email: string
+  async createOrder(payload: {
+    items: Array<{
+      id: string
+      productId: string
+      variantId: string
+      name: string
+      price: number
+      quantity: number
+      image?: string
+      shopName?: string
+      shopSlug?: string
+      selectedVariants?: Record<string, string>
+    }>
+    address: {
+      firstName: string
+      lastName: string
+      line: string
+      city: string
+      postalCode: string
+      country: string
+      phone: string
+      email: string
+    }
+    total: number
+  }) {
+    const response = await this.client.post('/orders', payload)
+    return response.data
   }
-  total: number
-}) {
-  const response = await this.client.post('/orders', payload)
-  return response.data
-}
 
-async getMyOrders(params?: { status?: string; limit?: number }) {
-  const response = await this.client.get('/orders/my-orders', { params })
-  return response.data
-}
+  async getMyOrders(params?: { status?: string; limit?: number }) {
+    const response = await this.client.get('/orders/my-orders', { params })
+    return response.data
+  }
+
+  async getOrderById(orderId: string) {
+    const response = await this.client.get(`/orders/${orderId}`);
+    return response.data;
+  }
 
   // ⚡ Récupérer les attributs (avec leurs valeurs)
   async getAttributes() {

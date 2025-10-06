@@ -27,7 +27,7 @@ interface ProductImage {
 interface ProductVariant {
   id: string
   stock_quantity: number
-  price_modifier: number
+  price: string // string in API
   attributes: Array<{
     attribute: string
     value: string
@@ -37,12 +37,11 @@ interface ProductVariant {
 interface Product {
   id: string
   name: string
-  description: string
+  description: string | null
   price: number
   shop_name: string
   shop_slug: string
   category_name: string
-  created_at: string
   variants?: ProductVariant[]
   images?: ProductImage[]
 }
@@ -67,6 +66,7 @@ export default function ProductDetailPage() {
       try {
         setLoading(true)
         const data = await apiClient.getProduct(productId)
+        console.log('Produit chargé:', data)
         setProduct(data.product)
 
         if (data.product.images?.length > 0) {
@@ -82,7 +82,6 @@ export default function ProductDetailPage() {
     if (productId) fetchProduct()
   }, [productId])
 
-  // Extraire les types d’attributs (Couleur, Taille, etc.)
   const attributeTypes = Array.from(
     new Set(product?.variants?.flatMap((v) => v.attributes.map((a) => a.attribute)) || [])
   )
@@ -92,17 +91,9 @@ export default function ProductDetailPage() {
   }
 
   const formatPrice = (price: number | string): string => {
-    const num = typeof price === 'string' ? parseFloat(price) : price;
-    
-    if (isNaN(num)) return '0';
-    
-    // Si c'est un nombre entier, pas de décimales
-    if (num === Math.floor(num)) {
-      return num.toString();
-    }
-    
-    // Sinon, afficher avec 2 décimales
-    return num.toFixed(2);
+    const num = typeof price === 'string' ? parseFloat(price) : price
+    if (isNaN(num)) return '0'
+    return num % 1 === 0 ? num.toString() : num.toFixed(2)
   }
 
   // Trouver la variante correspondant à la sélection actuelle
@@ -110,10 +101,11 @@ export default function ProductDetailPage() {
     v.attributes.every((a) => selectedAttributes[a.attribute] === a.value)
   )
 
+  // ✅ Correction du prix final
   const finalPrice =
     product && selectedVariant
-      ? (selectedVariant.price_modifier || 0)
-      : product?.price
+      ? parseFloat(selectedVariant.price)
+      : product?.price || 0
 
   const handleAddToCart = () => {
     if (!product) return
@@ -123,10 +115,17 @@ export default function ProductDetailPage() {
       return
     }
 
+    if (!selectedVariant && attributeTypes.length > 0) {
+      alert("La combinaison choisie n'est pas disponible.")
+      return
+    }
+
+    // ✅ Add the correct variantId for backend
     addItem({
       productId: product.id,
+      variantId: selectedVariant ? selectedVariant.id : product.id, // if simple product, fallback
       name: product.name,
-      price: finalPrice || 0,
+      price: finalPrice,
       image: selectedImage,
       shopName: product.shop_name,
       shopSlug: product.shop_slug,
@@ -202,24 +201,18 @@ export default function ProductDetailPage() {
         {/* Infos produit */}
         <div className="space-y-6">
           <h1 className="text-3xl font-bold">{product.name}</h1>
-          <p className="text-xl text-green-600 font-semibold">
-            {formatPrice(finalPrice ?? product.price ?? 0)} DZD
-          </p>
+          {selectedVariant ? (          
+            <p className="text-xl text-green-600 font-semibold">
+              {formatPrice(finalPrice)} DZD
+            </p>
+          ) : null}
 
-          {/* Sélection d’attributs façon Nike */}
+          {/* Sélection d’attributs */}
           {attributeTypes.length > 0 && (
             <div className="space-y-6">
               {attributeTypes.map((attrName) => {
                 const values =
                   product?.variants
-                    ?.filter((variant) =>
-                      Object.entries(selectedAttributes).every(([key, val]) => {
-                        if (key === attrName) return true
-                        return variant.attributes.some(
-                          (a) => a.attribute === key && a.value === val
-                        )
-                      })
-                    )
                     ?.flatMap((variant) =>
                       variant.attributes
                         .filter((a) => a.attribute === attrName)
@@ -235,64 +228,19 @@ export default function ProductDetailPage() {
                     <div className="flex flex-wrap gap-2">
                       {values.map((val) => {
                         const isSelected = selectedAttributes[attrName] === val
-
-                        const isAvailable = product?.variants?.some((variant) =>
-                          variant.attributes.every((a) => {
-                            if (a.attribute === attrName) return a.value === val
-                            return (
-                              !selectedAttributes[a.attribute] ||
-                              selectedAttributes[a.attribute] === a.value
-                            )
-                          }) && variant.stock_quantity > 0
-                        )
-
-                        const handleClick = () => {
-                          if (isSelected) {
-                            setSelectedAttributes((prev) => {
-                              const updated = { ...prev }
-                              delete updated[attrName]
-                              return updated
-                            })
-                          } else {
-                            handleSelectAttribute(attrName, val)
-                          }
-                        }
-
-                        if (attrName.toLowerCase() === 'couleur') {
-                          return (
-                            <button
-                              key={val}
-                              type="button"
-                              onClick={handleClick}
-                              disabled={!isAvailable}
-                              className={`px-4 py-2 rounded-md border text-sm font-medium transition-all 
-                                ${
-                                  isSelected
-                                    ? 'border-black bg-black text-white'
-                                    : 'border-gray-300 bg-white text-gray-800 hover:border-black'
-                                }
-                                ${!isAvailable ? 'opacity-40 cursor-not-allowed' : ''}
-                              `}
-                            >
-                              {val}
-                            </button>
-                          )
-                        }
+                        const handleClick = () => handleSelectAttribute(attrName, val)
 
                         return (
                           <button
                             key={val}
                             type="button"
                             onClick={handleClick}
-                            disabled={!isAvailable}
                             className={`px-4 py-2 rounded-md border text-sm font-medium transition-all 
                               ${
                                 isSelected
                                   ? 'border-black bg-black text-white'
                                   : 'border-gray-300 bg-white text-gray-800 hover:border-black'
-                              }
-                              ${!isAvailable ? 'opacity-40 cursor-not-allowed' : ''}
-                            `}
+                              }`}
                           >
                             {val}
                           </button>
@@ -314,34 +262,21 @@ export default function ProductDetailPage() {
                         .join(', ')}
                     </div>
 
-                    {(() => {
-                      const matchedVariant = product?.variants?.find((variant) =>
-                        variant.attributes.every(
-                          (a) => selectedAttributes[a.attribute] === a.value
-                        )
-                      )
-
-                      if (matchedVariant) {
-                        return (
-                          <>
-                            <div>
-                              <strong>Stock :</strong>{' '}
-                              {matchedVariant.stock_quantity}
-                            </div>
-                            <div>
-                              <strong>Prix :</strong>{' '}
-                              {formatPrice(matchedVariant.price_modifier)} DZD
-                            </div>
-                          </>
-                        )
-                      }
-
-                      return (
-                        <div className="text-gray-500">
-                          Cette combinaison n’est pas disponible.
+                    {selectedVariant ? (
+                      <>
+                        <div>
+                          <strong>Stock :</strong> {selectedVariant.stock_quantity}
                         </div>
-                      )
-                    })()}
+                        <div>
+                          <strong>Prix :</strong>{' '}
+                          {formatPrice(selectedVariant.price)} DZD
+                        </div>
+                      </>
+                    ) : (
+                      <div className="text-gray-500">
+                        Cette combinaison n’est pas disponible.
+                      </div>
+                    )}
                   </>
                 ) : (
                   <div className="text-gray-500">Aucune variante sélectionnée.</div>
@@ -382,20 +317,14 @@ export default function ProductDetailPage() {
             )}
           </Button>
 
-            <Button 
-              variant="secondary" 
-              size="lg" 
-              className="w-full"
-            >
-              <MessageCircle className="mr-2 h-5 w-5" />
-              Contacter le créateur
-            </Button>
-            
-            <Button variant="outline" size="lg" className="w-full" asChild>
-              <Link href={`/shops/${product.shop_slug}`}>
-                Voir la boutique
-              </Link>
-            </Button>
+          <Button variant="secondary" size="lg" className="w-full">
+            <MessageCircle className="mr-2 h-5 w-5" />
+            Contacter le créateur
+          </Button>
+
+          <Button variant="outline" size="lg" className="w-full" asChild>
+            <Link href={`/shops/${product.shop_slug}`}>Voir la boutique</Link>
+          </Button>
 
           <div className="border-t pt-4 space-y-2 text-sm text-gray-600">
             <div className="flex items-center gap-2">

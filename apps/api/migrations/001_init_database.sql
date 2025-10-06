@@ -116,7 +116,7 @@ CREATE INDEX idx_categories_slug ON categories(slug);
 CREATE TABLE orders (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   order_number VARCHAR(50) UNIQUE NOT NULL, -- Ex: ORD-2024-001234
-  user_id UUID NOT NULL REFERENCES users(id),
+  user_id UUID REFERENCES users(id),
   shop_id UUID NOT NULL REFERENCES shops(id), -- ⚡ Une commande appartient à UN seul shop
   
   status VARCHAR(50) DEFAULT 'pending', -- pending, confirmed, processing, shipped, delivered, cancelled, refunded
@@ -160,6 +160,24 @@ CREATE TABLE order_items (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Historique des statuts de commande
+CREATE TABLE order_status_history (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  order_id UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+  status VARCHAR(50) NOT NULL,
+  comment TEXT,
+  created_by UUID REFERENCES users(id), -- Qui a changé le statut (vendeur/admin)
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Index pour les performances
+CREATE INDEX idx_orders_user_id ON orders(user_id);
+CREATE INDEX idx_orders_shop_id ON orders(shop_id);
+CREATE INDEX idx_orders_status ON orders(status);
+CREATE INDEX idx_orders_created_at ON orders(created_at DESC);
+CREATE INDEX idx_order_items_order_id ON order_items(order_id);
+CREATE INDEX idx_order_items_product_variant_id ON order_items(product_variant_id);
+
 -- Table du panier (avant commande)
 /* CREATE TABLE cart (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -180,23 +198,6 @@ CREATE TABLE cart_items (
   UNIQUE(cart_id, product_variant_id) -- Un même variant ne peut être qu'une fois dans le panier
 ); */
 
--- Historique des statuts de commande
-CREATE TABLE order_status_history (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  order_id UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
-  status VARCHAR(50) NOT NULL,
-  comment TEXT,
-  created_by UUID REFERENCES users(id), -- Qui a changé le statut (vendeur/admin)
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Index pour les performances
-CREATE INDEX idx_orders_user_id ON orders(user_id);
-CREATE INDEX idx_orders_shop_id ON orders(shop_id);
-CREATE INDEX idx_orders_status ON orders(status);
-CREATE INDEX idx_orders_created_at ON orders(created_at DESC);
-CREATE INDEX idx_order_items_order_id ON order_items(order_id);
-CREATE INDEX idx_order_items_product_variant_id ON order_items(product_variant_id);
 /* CREATE INDEX idx_cart_user_id ON cart(user_id);
 CREATE INDEX idx_cart_items_cart_id ON cart_items(cart_id);
 CREATE INDEX idx_cart_items_shop_id ON cart_items(shop_id); */

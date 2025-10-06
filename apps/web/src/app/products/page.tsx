@@ -72,7 +72,8 @@ export default function ProductsPage() {
         ])
         
         let sortedProducts = [...productsData.products]
-        
+                console.log(sortedProducts)
+
         // Tri
         switch (filters.sortBy) {
           case 'price-asc':
