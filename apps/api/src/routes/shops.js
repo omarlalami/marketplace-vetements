@@ -7,17 +7,17 @@ const pool = require('../config/database');
 const router = express.Router();
 
 const createShopSchema = Joi.object({
-  name: Joi.string().min(2).max(255).required(),
+  name: Joi.string().min(2).max(50).required(),
   description: Joi.string().allow('').max(1000)
 });
 
 const updateShopSchema = Joi.object({
-  name: Joi.string().min(2).max(255),
+  name: Joi.string().min(2).max(50),
   description: Joi.string().allow('').max(1000),
   logoUrl: Joi.string().uri().allow('')
 }).min(1); // At least one field must be provided
 
-
+// Creer une boutique
 router.post('/', authenticateToken, async (req, res) => {
   try {
     const { error } = createShopSchema.validate(req.body);
@@ -26,21 +26,38 @@ router.post('/', authenticateToken, async (req, res) => {
     }
 
     const { name, description } = req.body;
-    
-    const shop = await Shop.create({
-      name,
-      description,
-      ownerId: req.user.userId
-    });
 
-    res.status(201).json({
-      message: 'Boutique créée avec succès',
-      shop
-    });
+    try {
+      const shop = await Shop.create({
+        name,
+        description,
+        ownerId: req.user.userId
+      });
 
-  } catch (error) {
-    console.error('Erreur création boutique:', error);
-    res.status(500).json({ error: 'Erreur lors de la création de la boutique' });
+      return res.status(201).json({
+        message: 'Boutique créée avec succès',
+        shop
+      });
+
+    } catch (err) {
+
+      // Erreur de nom déjà utilisé
+      if (err.code === 'SHOP_NAME_EXISTS') {
+        return res.status(409).json({ error: err.message });
+      }
+
+      // Autres erreurs gérées par le modèle (slug, etc.)
+      if (err.message && err.message.startsWith('Erreur lors')) {
+        return res.status(500).json({ error: err.message });
+      }
+
+      console.error('Erreur création boutique:', err);
+      return res.status(500).json({ error: 'Erreur interne lors de la création de la boutique' });
+    }
+
+  } catch (err) {
+    console.error('Erreur route /shops:', err);
+    res.status(500).json({ error: 'Erreur interne du serveur' });
   }
 });
 
@@ -78,8 +95,13 @@ router.put('/:id', authenticateToken, async (req, res) => {
       message: 'Boutique mise à jour avec succès',
       shop: updatedShop
     });
-  } catch (error) {
-    console.error('Erreur mise à jour boutique:', error);
+  } catch (err) {
+
+    //Erreur de nom déjà utilisé
+    if (err.code === 'SHOP_NAME_EXISTS') {
+      return res.status(409).json({ error: err.message });
+    }
+    console.error('Erreur mise à jour boutique:', err);
     res.status(500).json({ error: 'Erreur lors de la mise à jour de la boutique' });
   }
 });
