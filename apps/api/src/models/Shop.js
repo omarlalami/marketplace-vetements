@@ -2,19 +2,53 @@ const pool = require('../config/database');
 
 class Shop {
   static async create({ name, description, ownerId }) {
-    const slug = name.toLowerCase()
+    const baseSlug = name.toLowerCase()
       .replace(/[^a-z0-9]/g, '-')
       .replace(/-+/g, '-')
       .replace(/^-|-$/g, '');
 
-    const query = `
-      INSERT INTO shops (name, slug, description, owner_id)
-      VALUES ($1, $2, $3, $4)
-      RETURNING *
-    `;
-    
-    const result = await pool.query(query, [name, slug, description, ownerId]);
-    return result.rows[0];
+    try {
+      // Vérifier si une boutique avec le même nom existe déjà pour ce propriétaire
+      const existingName = await pool.query(
+        `SELECT id FROM shops WHERE name = $1`,
+        [name]
+      );
+
+      if (existingName.rows.length > 0) {
+        const error = new Error("Une boutique avec ce nom existe déjà.");
+        error.code = "SHOP_NAME_EXISTS";
+        throw error;
+      }
+
+      // Générer un slug unique si nécessaire
+      let slug = baseSlug;
+      let suffix = 1;
+
+      while (true) {
+        const existingSlug = await pool.query(
+          `SELECT id FROM shops WHERE slug = $1`,
+          [slug]
+        );
+
+        if (existingSlug.rows.length === 0) break; // slug libre
+        slug = `${baseSlug}-${suffix++}`; // sinon on ajoute un suffixe
+      }
+
+      // Insérer la boutique
+      const query = `
+        INSERT INTO shops (name, slug, description, owner_id)
+        VALUES ($1, $2, $3, $4)
+        RETURNING *
+      `;
+
+      const result = await pool.query(query, [name, slug, description, ownerId]);
+      return result.rows[0];
+
+    } catch (err) {
+      if (err.code === "SHOP_NAME_EXISTS") throw err; // on renvoie l’erreur claire
+      console.error("Erreur création boutique:", err);
+      throw new Error("Erreur lors de la création de la boutique.");
+    }
   }
 
   static async findById(id) {
@@ -51,52 +85,70 @@ class Shop {
     return result.rows;
   }
 
-    static async update(id, { name, description, logoUrl }) {
-    // Build dynamic query based on provided fields
-    const updates = [];
-    const values = [];
-    let paramCount = 1;
+  
 
-    if (name !== undefined) {
-      // Generate new slug if name is being updated
-      const slug = name.toLowerCase()
-        .replace(/[^a-z0-9]/g, '-')
-        .replace(/-+/g, '-')
-        .replace(/^-|-$/g, '');
-      
-      updates.push(`name = $${paramCount++}`);
-      values.push(name);
-      updates.push(`slug = $${paramCount++}`);
-      values.push(slug);
+static async update(id, { name, description, logoUrl }) {
+  try {
+    // Récupérer la boutique actuelle
+    const existingShopResult = await pool.query(
+      `SELECT id FROM shops WHERE id = $1 AND is_active = true`,
+      [id]
+    );
+    const existingShop = existingShopResult.rows[0];
+
+    if (!existingShop) {
+      const err = new Error("Boutique introuvable ou désactivée.");
+      err.code = "SHOP_NOT_FOUND";
+      throw err;
     }
 
-    if (description !== undefined) {
-      updates.push(`description = $${paramCount++}`);
-      values.push(description);
+    // --- 🔹 Si le nom change ---
+    if (name !== undefined && name !== existingShop.name) {
+      // Vérifier si une autre boutique a déjà ce nom
+      const nameCheck = await pool.query(
+        `SELECT id FROM shops WHERE name = $1`,
+        [name]
+      );
+
+      if (nameCheck.rows.length > 0) {
+        const err = new Error("Une boutique avec ce nom existe déjà.");
+        err.code = "SHOP_NAME_EXISTS";
+        throw err;
+      }
     }
 
-    if (logoUrl !== undefined) {
-      updates.push(`logo_url = $${paramCount++}`);
-      values.push(logoUrl);
-    }
+      // Vérifier si une autre boutique a déjà ce nom
+      const nameCheckExist = await pool.query(
+        `SELECT id FROM shops WHERE name = $1`,
+        [name]
+      );
+      if (nameCheckExist.rows.length > 0) {
+        const err = new Error("Une boutique avec ce nom existe déjà.");
+        err.code = "SHOP_NAME_EXISTS";
+        throw err;
+      }
 
-    // Always update the updated_at timestamp
-    updates.push(`updated_at = CURRENT_TIMESTAMP`);
-
-    // Add shop id as last parameter
-    values.push(id);
-
+    // --- 🔹 Exécuter la requête ---
     const query = `
-      UPDATE shops 
-      SET ${updates.join(', ')}
-      WHERE id = $${paramCount} AND is_active = true
+      UPDATE shops
+      SET name = $1, description = $2
+      WHERE id = $3 AND is_active = true
       RETURNING *
     `;
 
-    const result = await pool.query(query, values);
+    const result = await pool.query(query, [name, description, id]);
     return result.rows[0];
+
+  } catch (err) {
+    if (["SHOP_NOT_FOUND", "SHOP_NAME_EXISTS", "SHOP_UPDATE_FAILED", "NO_FIELDS"].includes(err.code)) {
+      throw err;
+    }
+    console.error("Erreur update boutique:", err);
+    throw new Error("Erreur lors de la mise à jour de la boutique.");
   }
-    // Soft delete
+}
+
+  // Soft delete
   static async delete(id) {
     const query = `
       UPDATE shops

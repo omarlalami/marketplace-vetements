@@ -115,10 +115,17 @@ export default function UpdateShopPage() {
                   onChange={handleChange}
                   placeholder="Ma Boutique Créative"
                   required
+                  minLength={2}
+                  maxLength={50}
                 />
                 <p className="text-sm text-muted-foreground">
                   Ce nom sera visible sur votre page publique
                 </p>
+                {formData.name.length > 0 && (formData.name.length < 2 || formData.name.length > 50) && (
+                  <p className="text-sm text-red-500">
+                    Le nom doit contenir entre 2 et 50 caractères.
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -132,14 +139,25 @@ export default function UpdateShopPage() {
                   onChange={handleChange}
                   placeholder="Décrivez votre univers créatif, votre style, vos inspirations..."
                   rows={4}
+                  maxLength={300}
                 />
-                <p className="text-sm text-muted-foreground">
-                  Présentez votre boutique aux visiteurs (optionnel)
-                </p>
+                <div className="flex justify-between items-center">
+                  <p className="text-sm text-muted-foreground">
+                    Présentez votre boutique aux visiteurs (optionnel)
+                  </p>
+                  <p className={`text-xs ${formData.description.length > 290 ? 'text-red-500' : 'text-muted-foreground'}`}>
+                    {formData.description.length}/300
+                  </p>
+                </div>
+                {formData.description.length > 300 && (
+                  <p className="text-sm text-red-500">
+                    La description ne peut pas dépasser 300 caractères.
+                  </p>
+                )}
               </div>
 
               <div className="flex gap-4 pt-4">
-                <Button type="submit" disabled={loading} className="flex-1">
+                <Button type="submit" disabled={loading || !formData.name || formData.name.length < 2} className="flex-1">
                   {loading ? 'Mise à jour...' : 'Enregistrer les modifications'}
                 </Button>
                 <Button variant="outline" type="button" asChild>
