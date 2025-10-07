@@ -11,3 +11,14 @@ INSERT INTO categories (name, slug, description, parent_id) VALUES
 ('Pantalons', 'pantalons-homme', 'Pantalons pour homme', (SELECT id FROM categories WHERE slug = 'homme')),
 ('Robes', 'robes', 'Robes pour femme', (SELECT id FROM categories WHERE slug = 'femme')),
 ('Tops', 'tops', 'Tops pour femme', (SELECT id FROM categories WHERE slug = 'femme'));
+
+INSERT INTO attributes (name) VALUES ('Taille'), ('Couleur'), ('Pointure');
+
+INSERT INTO attribute_values (attribute_id, value) VALUES
+(1, 'XS'), (1, 'S'), (1, 'M'), (1, 'L'), (1, 'XL');
+-- Couleurs
+INSERT INTO attribute_values (attribute_id, value) VALUES
+(2, 'Bleu'), (2, 'Vert'), (2, 'Noir'), (2, 'Blanc');
+-- Pointures
+INSERT INTO attribute_values (attribute_id, value) VALUES
+(3, '39'), (3, '40'), (3, '41'), (3, '42');

@@ -4,372 +4,341 @@ import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { apiClient } from '@/lib/api'
-import { 
-  ArrowLeft, 
-  Heart, 
-  Share2, 
-  Star,
+import { useCartStore } from '@/stores/cartStore'
+import {
+  Check,
+  MessageCircle,
   ShoppingBag,
-  Truck,
+  ShoppingCart,
   Shield,
-  MessageCircle
+  Truck,
 } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
+import { ClientLayout } from '@/components/layout/ClientLayout'
 
 interface ProductImage {
   id: string
   url: string
   is_primary: boolean
 }
+
+interface ProductVariant {
+  id: string
+  stock_quantity: number
+  price: string // string in API
+  attributes: Array<{
+    attribute: string
+    value: string
+  }>
+}
+
 interface Product {
   id: string
   name: string
-  description: string
+  description: string | null
   price: number
   shop_name: string
   shop_slug: string
   category_name: string
-  created_at: string
-  variants?: Array<{
-    id: string
-    name: string
-    type: string
-    value: string
-    stock_quantity: number
-  }>
+  variants?: ProductVariant[]
   images?: ProductImage[]
 }
 
 export default function ProductDetailPage() {
   const params = useParams()
   const productId = params.id as string
-  
+
   const [product, setProduct] = useState<Product | null>(null)
   const [loading, setLoading] = useState(true)
   const [selectedImage, setSelectedImage] = useState<string>('')
-  const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({})
+  const [selectedAttributes, setSelectedAttributes] = useState<Record<string, string>>({})
+  const [quantity, setQuantity] = useState(1)
   const [error, setError] = useState('')
+  const [addedToCart, setAddedToCart] = useState(false)
 
+  const addItem = useCartStore((state) => state.addItem)
+
+  // Charger produit
   useEffect(() => {
     const fetchProduct = async () => {
       try {
         setLoading(true)
         const data = await apiClient.getProduct(productId)
+        console.log('Produit chargé:', data)
         setProduct(data.product)
-        
-        // Définir l'image sélectionnée par défaut
+
         if (data.product.images?.length > 0) {
-          const primaryImage = data.product.images.find((img: ProductImage) => img.is_primary)
-          setSelectedImage(primaryImage?.url || data.product.images[0].url)
+          const primary = data.product.images.find((img: ProductImage) => img.is_primary)
+          setSelectedImage(primary?.url || data.product.images[0].url)
         }
-      } catch (error: any) {
-        setError(error.response?.data?.error || 'Produit non trouvé')
+      } catch (err: any) {
+        setError(err.response?.data?.error || 'Produit introuvable')
       } finally {
         setLoading(false)
       }
     }
-
-    if (productId) {
-      fetchProduct()
-    }
+    if (productId) fetchProduct()
   }, [productId])
 
-  const handleVariantChange = (type: string, value: string) => {
-    setSelectedVariants(prev => ({
-      ...prev,
-      [type]: value
-    }))
+  const attributeTypes = Array.from(
+    new Set(product?.variants?.flatMap((v) => v.attributes.map((a) => a.attribute)) || [])
+  )
+
+  const handleSelectAttribute = (attrName: string, value: string) => {
+    setSelectedAttributes((prev) => ({ ...prev, [attrName]: value }))
   }
 
-  const getVariantsByType = (type: string) => {
-    return product?.variants?.filter(v => v.type === type) || []
+  const formatPrice = (price: number | string): string => {
+    const num = typeof price === 'string' ? parseFloat(price) : price
+    if (isNaN(num)) return '0'
+    return num % 1 === 0 ? num.toString() : num.toFixed(2)
   }
 
-  const variantTypes = [...new Set(product?.variants?.map(v => v.type) || [])]
+  // Trouver la variante correspondant à la sélection actuelle
+  const selectedVariant = product?.variants?.find((v) =>
+    v.attributes.every((a) => selectedAttributes[a.attribute] === a.value)
+  )
 
-  if (loading) {
+  // ✅ Correction du prix final
+  const finalPrice =
+    product && selectedVariant
+      ? parseFloat(selectedVariant.price)
+      : product?.price || 0
+
+  const handleAddToCart = () => {
+    if (!product) return
+
+    if (attributeTypes.length > 0 && attributeTypes.some((a) => !selectedAttributes[a])) {
+      alert('Veuillez sélectionner toutes les options avant d’ajouter au panier.')
+      return
+    }
+
+    if (!selectedVariant && attributeTypes.length > 0) {
+      alert("La combinaison choisie n'est pas disponible.")
+      return
+    }
+
+    // ✅ Add the correct variantId for backend
+    addItem({
+      productId: product.id,
+      variantId: selectedVariant ? selectedVariant.id : product.id, // if simple product, fallback
+      name: product.name,
+      price: finalPrice,
+      image: selectedImage,
+      shopName: product.shop_name,
+      shopSlug: product.shop_slug,
+      selectedVariants: selectedAttributes,
+    })
+
+    setAddedToCart(true)
+    setTimeout(() => setAddedToCart(false), 2000)
+  }
+
+  if (loading) return <div className="text-center py-20 text-gray-500">Chargement...</div>
+
+  if (error || !product)
     return (
-      <div className="min-h-screen bg-gray-50">
-        <header className="bg-white border-b">
-          <div className="container mx-auto px-4 py-4">
-            <div className="h-8 bg-gray-200 rounded w-48 animate-pulse"></div>
-          </div>
-        </header>
-        <main className="container mx-auto px-4 py-8">
-          <div className="grid gap-8 lg:grid-cols-2">
-            <div className="aspect-square bg-gray-200 rounded-lg animate-pulse"></div>
-            <div className="space-y-6">
-              <div className="h-8 bg-gray-200 rounded w-3/4 animate-pulse"></div>
-              <div className="h-6 bg-gray-200 rounded w-1/2 animate-pulse"></div>
-              <div className="space-y-2">
-                <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
-                <div className="h-4 bg-gray-200 rounded w-2/3 animate-pulse"></div>
-              </div>
-            </div>
-          </div>
-        </main>
-      </div>
+      <ClientLayout>
+        <div className="min-h-screen flex items-center justify-center">
+          <Card>
+            <CardContent className="text-center p-6">
+              <p className="text-red-500 mb-4">{error}</p>
+              <Button asChild>
+                <Link href="/products">Voir tous les produits</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </ClientLayout>
     )
-  }
-
-  if (error || !product) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Card className="max-w-md w-full mx-4">
-          <CardContent className="pt-6 text-center">
-            <div className="text-red-500 mb-4">
-              <ShoppingBag className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <h2 className="text-xl font-semibold mb-2">Produit introuvable</h2>
-              <p className="text-muted-foreground">{error}</p>
-            </div>
-            <Button asChild>
-              <Link href="/products">
-                Voir tous les produits
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
-
-  const images = product.images || []
-  const hasMultipleImages = images.length > 1
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Navigation */}
-      <header className="bg-white border-b">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex justify-between items-center">
-            <Link href="/" className="text-2xl font-bold text-primary">
-              Fashion Market
-            </Link>
-            <nav className="hidden md:flex items-center space-x-6">
-              <Link href="/products" className="text-muted-foreground hover:text-foreground">
-                Produits
-              </Link>
-              <Link href="/shops" className="text-muted-foreground hover:text-foreground">
-                Créateurs
-              </Link>
-            </nav>
+    <ClientLayout>
+      <main className="container mx-auto px-4 py-8 grid gap-8 lg:grid-cols-2">
+        {/* Images */}
+        <div>
+          <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
+            {selectedImage ? (
+              <Image
+                src={selectedImage}
+                alt={product.name}
+                width={600}
+                height={600}
+                className="object-cover w-full h-full"
+              />
+            ) : (
+              <div className="flex items-center justify-center h-full text-gray-400">
+                <ShoppingBag className="h-12 w-12 opacity-50" />
+              </div>
+            )}
           </div>
-        </div>
-      </header>
 
-      <main className="container mx-auto px-4 py-8">
-        {/* Breadcrumb */}
-        <div className="mb-6">
-          <Button variant="ghost" size="sm" asChild>
-            <Link href="/products">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Retour aux produits
-            </Link>
-          </Button>
-        </div>
-
-        <div className="grid gap-8 lg:grid-cols-2 xl:grid-cols-5">
-          {/* Galerie d'images */}
-          <div className="xl:col-span-3">
-            <div className="space-y-4">
-              {/* Image principale */}
-              <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
-                {selectedImage ? (
+          {product.images && product.images.length > 1 && (
+            <div className="flex gap-2 mt-3">
+              {product.images.map((img) => (
+                <button
+                  key={img.id}
+                  onClick={() => setSelectedImage(img.url)}
+                  className={`w-20 h-20 rounded-md overflow-hidden border-2 ${
+                    selectedImage === img.url ? 'border-black' : 'border-transparent'
+                  }`}
+                >
                   <Image
-                    src={selectedImage}
+                    src={img.url}
                     alt={product.name}
-                    width={800}
-                    height={800}
-                    className="w-full h-full object-cover"
+                    width={100}
+                    height={100}
+                    className="object-cover w-full h-full"
                   />
-                ) : (
-                  <div className="flex items-center justify-center h-full text-gray-400">
-                    <div className="text-center">
-                      <ShoppingBag className="h-16 w-16 mx-auto mb-4 opacity-50" />
-                      <p>Aucune image disponible</p>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Infos produit */}
+        <div className="space-y-6">
+          <h1 className="text-3xl font-bold">{product.name}</h1>
+          {selectedVariant ? (          
+            <p className="text-xl text-green-600 font-semibold">
+              {formatPrice(finalPrice)} DZD
+            </p>
+          ) : null}
+
+          {/* Sélection d’attributs */}
+          {attributeTypes.length > 0 && (
+            <div className="space-y-6">
+              {attributeTypes.map((attrName) => {
+                const values =
+                  product?.variants
+                    ?.flatMap((variant) =>
+                      variant.attributes
+                        .filter((a) => a.attribute === attrName)
+                        .map((a) => a.value)
+                    )
+                    ?.filter((v, i, arr) => arr.indexOf(v) === i) || []
+
+                return (
+                  <div key={attrName}>
+                    <label className="block text-base font-medium mb-2 capitalize">
+                      {attrName}
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {values.map((val) => {
+                        const isSelected = selectedAttributes[attrName] === val
+                        const handleClick = () => handleSelectAttribute(attrName, val)
+
+                        return (
+                          <button
+                            key={val}
+                            type="button"
+                            onClick={handleClick}
+                            className={`px-4 py-2 rounded-md border text-sm font-medium transition-all 
+                              ${
+                                isSelected
+                                  ? 'border-black bg-black text-white'
+                                  : 'border-gray-300 bg-white text-gray-800 hover:border-black'
+                              }`}
+                          >
+                            {val}
+                          </button>
+                        )
+                      })}
                     </div>
                   </div>
+                )
+              })}
+
+              {/* Résumé de la sélection */}
+              <div className="mt-6 border-t pt-4 text-sm text-gray-700 space-y-1">
+                {Object.keys(selectedAttributes).length > 0 ? (
+                  <>
+                    <div>
+                      <strong>Votre sélection :</strong>{' '}
+                      {Object.entries(selectedAttributes)
+                        .map(([attr, val]) => `${attr}: ${val}`)
+                        .join(', ')}
+                    </div>
+
+                    {selectedVariant ? (
+                      <>
+                        <div>
+                          <strong>Stock :</strong> {selectedVariant.stock_quantity}
+                        </div>
+                        <div>
+                          <strong>Prix :</strong>{' '}
+                          {formatPrice(selectedVariant.price)} DZD
+                        </div>
+                      </>
+                    ) : (
+                      <div className="text-gray-500">
+                        Cette combinaison n’est pas disponible.
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="text-gray-500">Aucune variante sélectionnée.</div>
                 )}
               </div>
-
-              {/* Miniatures */}
-              {hasMultipleImages && (
-                <div className="grid grid-cols-4 gap-2">
-                  {images.map((image, index) => (
-                    <button
-                      key={image.id}
-                      onClick={() => setSelectedImage(image.url)}
-                      className={`aspect-square rounded-lg overflow-hidden border-2 transition-colors ${
-                        selectedImage === image.url 
-                          ? 'border-primary' 
-                          : 'border-transparent hover:border-gray-300'
-                      }`}
-                    >
-                      <Image
-                        src={image.url}
-                        alt={`${product.name} ${index + 1}`}
-                        width={100}
-                        height={100}
-                        className="w-full h-full object-cover"
-                      />
-                    </button>
-                  ))}
-                </div>
-              )}
             </div>
+          )}
+
+          {/* Quantité */}
+          <div className="flex items-center gap-3">
+            <Button
+              onClick={() => setQuantity(Math.max(1, quantity - 1))}
+              variant="outline"
+              size="icon"
+            >
+              -
+            </Button>
+            <span>{quantity}</span>
+            <Button
+              onClick={() => setQuantity(quantity + 1)}
+              variant="outline"
+              size="icon"
+            >
+              +
+            </Button>
           </div>
 
-          {/* Informations produit */}
-          <div className="xl:col-span-2">
-            <div className="space-y-6">
-              {/* En-tête */}
-              <div>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-                  <Link 
-                    href={`/shops/${product.shop_slug}`}
-                    className="hover:text-primary transition-colors font-medium"
-                  >
-                    {product.shop_name}
-                  </Link>
-                  {product.category_name && (
-                    <>
-                      <span>•</span>
-                      <span>{product.category_name}</span>
-                    </>
-                  )}
-                </div>
-                
-                <h1 className="text-3xl font-bold mb-4">{product.name}</h1>
-                
-                {product.price ? (
-                  <div className="text-3xl font-bold text-green-600 mb-6">
-                    {product.price}€
-                  </div>
-                ) : (
-                  <div className="text-lg text-muted-foreground mb-6">
-                    Prix sur demande
-                  </div>
-                )}
-              </div>
+          {/* Actions */}
+          <Button onClick={handleAddToCart} disabled={addedToCart} className="w-full">
+            {addedToCart ? (
+              <>
+                <Check className="mr-2 h-5 w-5" /> Ajouté !
+              </>
+            ) : (
+              <>
+                <ShoppingCart className="mr-2 h-5 w-5" /> Ajouter au panier
+              </>
+            )}
+          </Button>
 
-              {/* Actions rapides */}
-              <div className="flex gap-3">
-                <Button variant="outline" size="icon">
-                  <Heart className="h-5 w-5" />
-                </Button>
-                <Button variant="outline" size="icon">
-                  <Share2 className="h-5 w-5" />
-                </Button>
-              </div>
+          <Button variant="secondary" size="lg" className="w-full">
+            <MessageCircle className="mr-2 h-5 w-5" />
+            Contacter le créateur
+          </Button>
 
-              {/* Variantes */}
-              {variantTypes.length > 0 && (
-                <div className="space-y-4">
-                  <h3 className="font-semibold">Options disponibles</h3>
-                  {variantTypes.map((type) => {
-                    const variants = getVariantsByType(type)
-                    const typeLabel = type === 'size' ? 'Taille' : type === 'color' ? 'Couleur' : 'Option'
-                    
-                    return (
-                      <div key={type} className="space-y-2">
-                        <label className="text-sm font-medium">{typeLabel}</label>
-                        <Select
-                          value={selectedVariants[type] || ''}
-                          onValueChange={(value) => handleVariantChange(type, value)}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder={`Choisir ${typeLabel.toLowerCase()}`} />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {variants.map((variant) => (
-                              <SelectItem key={variant.id} value={variant.value}>
-                                <div className="flex justify-between items-center w-full">
-                                  <span>{variant.value}</span>
-                                  <span className="text-xs text-muted-foreground ml-2">
-                                    Stock: {variant.stock_quantity}
-                                  </span>
-                                </div>
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
+          <Button variant="outline" size="lg" className="w-full" asChild>
+            <Link href={`/shops/${product.shop_slug}`}>Voir la boutique</Link>
+          </Button>
 
-              {/* Actions principales */}
-              <div className="space-y-3">
-                <Button size="lg" className="w-full">
-                  <MessageCircle className="mr-2 h-5 w-5" />
-                  Contacter le créateur
-                </Button>
-                <Button variant="outline" size="lg" className="w-full" asChild>
-                  <Link href={`/shops/${product.shop_slug}`}>
-                    Voir la boutique
-                  </Link>
-                </Button>
-              </div>
-
-              {/* Garanties */}
-              <div className="border-t pt-6">
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3 text-sm">
-                    <Shield className="h-5 w-5 text-green-600" />
-                    <span>Créateur vérifié</span>
-                  </div>
-                  <div className="flex items-center gap-3 text-sm">
-                    <Truck className="h-5 w-5 text-blue-600" />
-                    <span>Livraison personnalisée</span>
-                  </div>
-                  <div className="flex items-center gap-3 text-sm">
-                    <MessageCircle className="h-5 w-5 text-purple-600" />
-                    <span>Support créateur direct</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Description */}
-              {product.description && (
-                <div className="border-t pt-6">
-                  <h3 className="font-semibold mb-3">Description</h3>
-                  <div className="prose prose-sm max-w-none text-muted-foreground">
-                    {product.description.split('\n').map((paragraph, index) => (
-                      <p key={index}>{paragraph}</p>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Informations */}
-              <div className="border-t pt-6">
-                <h3 className="font-semibold mb-3">Informations produit</h3>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Créé le</span>
-                    <span>{new Date(product.created_at).toLocaleDateString('fr-FR')}</span>
-                  </div>
-                  {product.category_name && (
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Catégorie</span>
-                      <span>{product.category_name}</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Référence</span>
-                    <span className="font-mono text-xs">{product.id.slice(0, 8).toUpperCase()}</span>
-                  </div>
-                </div>
-              </div>
+          <div className="border-t pt-4 space-y-2 text-sm text-gray-600">
+            <div className="flex items-center gap-2">
+              <Shield className="h-4 w-4 text-green-500" /> Créateur vérifié
+            </div>
+            <div className="flex items-center gap-2">
+              <Truck className="h-4 w-4 text-blue-500" /> Livraison personnalisée
+            </div>
+            <div className="flex items-center gap-2">
+              <MessageCircle className="h-4 w-4 text-purple-500" /> Support direct
             </div>
           </div>
         </div>
       </main>
-    </div>
+    </ClientLayout>
   )
 }

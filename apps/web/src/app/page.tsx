@@ -18,6 +18,7 @@ import {
 } from 'lucide-react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
+import { ClientLayout } from '@/components/layout/ClientLayout'
 
 export default function HomePage() {
   const [categories, setCategories] = useState([])
@@ -82,64 +83,23 @@ export default function HomePage() {
   } */
 
   return (
+  <ClientLayout>
     <div className="min-h-screen bg-gray-50">
       {/* Navigation */}
-      <header className="bg-white shadow-sm border-b sticky top-0 z-40">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex justify-between items-center">
-            <Link href="/" className="text-2xl font-bold text-primary">
-              Fashion Market
-            </Link>
-            
-            <nav className="hidden md:flex items-center space-x-6">
-              <Link href="/products" className="text-muted-foreground hover:text-foreground transition-colors">
-                Produits
-              </Link>
-              <Link href="/shops" className="text-muted-foreground hover:text-foreground transition-colors">
-                Créateurs
-              </Link>
-            </nav>
-            
-            <div className="flex items-center gap-4">
-              {user ? (
-                <div className="flex items-center gap-4">
-                  <span className="text-sm text-gray-600 hidden sm:block">
-                    Bonjour, {user.firstName} !
-                  </span>
-                  <Button variant="outline" asChild>
-                    <Link href="/dashboard">Dashboard</Link>
-                  </Button>
-                  <Button variant="outline" onClick={handleLogout}>
-                    Déconnexion
-                  </Button>
-                </div>
-              ) : (
-                <div className="flex gap-2">
-                  <Button variant="outline" asChild>
-                    <Link href="/login">Se connecter</Link>
-                  </Button>
-                  <Button asChild>
-                    <Link href="/register">S'inscrire</Link>
-                  </Button>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </header>
 
       <main>
         {/* Hero Section */}
         <section className="relative bg-gradient-to-br from-purple-50 via-white to-blue-50 py-20 sm:py-32">
           <div className="container mx-auto px-4 text-center">
             <div className="max-w-4xl mx-auto">
+
               <h1 className="text-4xl sm:text-6xl font-bold tracking-tight text-gray-900 mb-6">
                 La marketplace des{' '}
-                <span className="bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-                  créateurs de mode
+                <span className="bg-gradient-to-r from-green-600 via-gray-400 to-red-600 bg-clip-text text-transparent">
+                  créateurs de mode algériens
                 </span>
               </h1>
-              
+
               <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
                 Découvrez des pièces uniques créées par des designers passionnés. 
                 Soutenez les créateurs indépendants et exprimez votre style authentique.
@@ -326,61 +286,8 @@ export default function HomePage() {
         </section>
       </main>
 
-
-      {/* Footer */}
-      <footer className="bg-gray-900 text-white py-12">
-        <div className="container mx-auto px-4">
-          <div className="grid gap-8 md:grid-cols-4">
-            <div>
-              <h3 className="text-lg font-bold mb-4">Fashion Market</h3>
-              <p className="text-gray-400">
-                La marketplace qui connecte les créateurs de mode avec leurs clients.
-              </p>
-            </div>
-            
-            <div>
-              <h4 className="font-semibold mb-4">Découvrir</h4>
-              <div className="space-y-2">
-                <Link href="/products" className="block text-gray-400 hover:text-white transition-colors">
-                  Tous les produits
-                </Link>
-                <Link href="/shops" className="block text-gray-400 hover:text-white transition-colors">
-                  Créateurs
-                </Link>
-              </div>
-            </div>
-            
-            <div>
-              <h4 className="font-semibold mb-4">Créateurs</h4>
-              <div className="space-y-2">
-                <Link href="/register" className="block text-gray-400 hover:text-white transition-colors">
-                  Devenir créateur
-                </Link>
-                <Link href="/login" className="block text-gray-400 hover:text-white transition-colors">
-                  Se connecter
-                </Link>
-              </div>
-            </div>
-            
-            <div>
-              <h4 className="font-semibold mb-4">Support</h4>
-              <div className="space-y-2">
-                <a href="#" className="block text-gray-400 hover:text-white transition-colors">
-                  Aide
-                </a>
-                <a href="#" className="block text-gray-400 hover:text-white transition-colors">
-                  Contact
-                </a>
-              </div>
-            </div>
-          </div>
-          
-          <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-            <p>&copy; 2024 Fashion Market. Tous droits réservés.</p>
-          </div>
-        </div>
-      </footer>
     </div>
+  </ClientLayout>    
   )
 }
 

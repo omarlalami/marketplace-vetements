@@ -1,4 +1,3 @@
-
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -17,12 +16,29 @@ import { ArrowLeft, Plus, X, Trash2, Save } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
 
-interface Variant {
+interface AttributeValue {
+  id: string
+  value: string
+}
+
+interface Attribute {
   id: string
   name: string
-  type: 'size' | 'color' | 'custom'
+  values: AttributeValue[]
+}
+
+interface VariantAttributeValue {
+  value_id: string
+  attribute_id: string
+  attribute_name: string
   value: string
-  stockQuantity: number
+}
+
+interface Variant {
+  id: string
+  stock_quantity: number
+  price: number
+  attributes: VariantAttributeValue[]
 }
 
 interface ProductImage {
@@ -47,6 +63,7 @@ export default function EditProductPage() {
   const [existingImages, setExistingImages] = useState<ProductImage[]>([])
   const [newImages, setNewImages] = useState<File[]>([])
   const [categories, setCategories] = useState([])
+  const [attributes, setAttributes] = useState<Attribute[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -56,10 +73,17 @@ export default function EditProductPage() {
     const fetchData = async () => {
       try {
         setLoading(true)
-        const [productData, categoriesData] = await Promise.all([
+        const [productData, categoriesData, attributesData] = await Promise.all([
           apiClient.getProductForEdit(productId),
-          apiClient.getCategories()
+          apiClient.getCategories(),
+          apiClient.getAttributes()
         ])
+
+console.log("debut log des donnees recu")
+console.log(productData)
+console.log(categoriesData)
+console.log(attributesData)
+console.log("fin log des donnees recu")
 
         const product = productData.product
         
@@ -71,18 +95,23 @@ export default function EditProductPage() {
         })
 
         // Convertir les variantes au bon format
-        const formattedVariants = (product.variants || []).map((v: any, index: number) => ({
-          id: `existing-${index}`,
-          name: v.name,
-          type: v.type,
-          value: v.value,
-          stockQuantity: v.stock_quantity
+        const formattedVariants = (product.variants || []).map((v: any) => ({
+          id: v.id || `temp-${Date.now()}-${Math.random()}`,
+          stock_quantity: v.stock_quantity || 0,
+          price: parseFloat(v.price || '0'),
+          attributes: (v.attributes || []).map((attr: any) => ({
+            value_id: attr.value_id,
+            attribute_id: attr.value_id || '',
+            attribute_name: attr.attribute || '',
+            value: attr.value
+          }))
         }))
         setVariants(formattedVariants)
 
         // Images existantes
         setExistingImages(product.images || [])
         setCategories(categoriesData.categories)
+        setAttributes(attributesData.attributes)
         
       } catch (error: any) {
         setError(error.response?.data?.error || 'Erreur lors du chargement')
@@ -101,25 +130,94 @@ export default function EditProductPage() {
     setFormData(prev => ({ ...prev, [field]: value }))
   }
 
-  const addVariant = (type: 'size' | 'color' | 'custom') => {
+  const formatPrice = (price: number | string): string => {
+    const num = typeof price === 'string' ? parseFloat(price) : price;
+    
+    if (isNaN(num)) return '0';
+    
+    // Si c'est un nombre entier, pas de décimales
+    if (num === Math.floor(num)) {
+      return num.toString();
+    }
+    
+    // Sinon, afficher avec 2 décimales
+    return num.toFixed(2);
+  }
+
+  const addVariant = () => {
     const newVariant: Variant = {
-      id: `new-${Date.now()}`,
-      name: type === 'size' ? 'Taille' : type === 'color' ? 'Couleur' : 'Variante',
-      type,
-      value: '',
-      stockQuantity: 0
+      id: `new-${Date.now()}-${Math.random()}`,
+      stock_quantity: 0,
+      price: 0,
+      attributes: []
     }
     setVariants(prev => [...prev, newVariant])
   }
 
-  const updateVariant = (id: string, field: keyof Variant, value: string | number) => {
+  const removeVariant = (id: string) => {
+    setVariants(prev => prev.filter(variant => variant.id !== id))
+  }
+
+  const updateVariantField = (variantId: string, field: 'stock_quantity' | 'price', value: number) => {
     setVariants(prev => prev.map(variant => 
-      variant.id === id ? { ...variant, [field]: value } : variant
+      variant.id === variantId ? { ...variant, [field]: value } : variant
     ))
   }
 
-  const removeVariant = (id: string) => {
-    setVariants(prev => prev.filter(variant => variant.id !== id))
+  const addAttributeToVariant = (variantId: string, attributeId: string) => {
+    const attribute = attributes.find(attr => attr.id === attributeId)
+    if (!attribute || attribute.values.length === 0) return
+
+    const newAttr: VariantAttributeValue = {
+      value_id: attribute.values[0].id,
+      attribute_id: attributeId,
+      attribute_name: attribute.name,
+      value: attribute.values[0].value
+    }
+
+    setVariants(prev => prev.map(variant => {
+      if (variant.id !== variantId) return variant
+      
+      // Vérifier si l'attribut existe déjà
+      const hasAttribute = variant.attributes.some(attr => attr.attribute_id === attributeId)
+      if (hasAttribute) return variant
+
+      return {
+        ...variant,
+        attributes: [...variant.attributes, newAttr]
+      }
+    }))
+  }
+
+  const updateVariantAttribute = (variantId: string, attributeId: string, valueId: string) => {
+    const attribute = attributes.find(attr => attr.id === attributeId)
+    const attributeValue = attribute?.values.find(val => val.id === valueId)
+    
+    if (!attributeValue) return
+
+    setVariants(prev => prev.map(variant => {
+      if (variant.id !== variantId) return variant
+
+      return {
+        ...variant,
+        attributes: variant.attributes.map(attr => 
+          attr.attribute_id === attributeId 
+            ? { ...attr, value_id: valueId, value: attributeValue.value }
+            : attr
+        )
+      }
+    }))
+  }
+
+  const removeAttributeFromVariant = (variantId: string, attributeId: string) => {
+    setVariants(prev => prev.map(variant => {
+      if (variant.id !== variantId) return variant
+
+      return {
+        ...variant,
+        attributes: variant.attributes.filter(attr => attr.attribute_id !== attributeId)
+      }
+    }))
   }
 
   const handleDeleteExistingImage = async (imageId: string) => {
@@ -146,13 +244,13 @@ export default function EditProductPage() {
         categoryId: formData.categoryId || undefined,
         price: formData.price ? parseFloat(formData.price) : undefined,
         variants: variants.map(v => ({
-          name: v.name,
-          type: v.type,
-          value: v.value,
-          stockQuantity: v.stockQuantity
+          stockQuantity: v.stock_quantity,
+          price: v.price,
+          attributes: v.attributes.map(attr => attr.value_id)
         }))
       }
-
+      console.log("donne envoyer du formulaire")
+      console.log(productData)
       await apiClient.updateProduct(productId, productData)
 
       // Upload des nouvelles images si présentes
@@ -172,6 +270,19 @@ export default function EditProductPage() {
     category,
     ...(category.children || [])
   ])
+
+  const getAvailableAttributes = (variant: Variant) => {
+    const usedAttributeIds = variant.attributes.map(attr => attr.attribute_id)
+    return attributes.filter(attr => !usedAttributeIds.includes(attr.id))
+  }
+
+  const getAttributeIcon = (attributeName: string) => {
+    const name = attributeName.toLowerCase()
+    if (name.includes('size') || name.includes('taille')) return '📏'
+    if (name.includes('color') || name.includes('couleur')) return '🎨'
+    if (name.includes('pointure')) return '👟'
+    return '⚙️'
+  }
 
   if (loading) {
     return (
@@ -286,18 +397,24 @@ export default function EditProductPage() {
                       </Select>
                     </div>
 
+                   {/* A REMPLACER PAR SELECTION BOUTIQUE
                     <div className="space-y-2">
-                      <Label htmlFor="price">Prix (€)</Label>
+                      <Label htmlFor="price">Prix de base (DZD)</Label>
                       <Input
                         id="price"
                         type="number"
                         step="0.01"
                         min="0"
-                        value={formData.price}
+                        value={formatPrice(formData.price)}
                         onChange={(e) => handleInputChange('price', e.target.value)}
+                        onBlur={(e) => {
+                          // Formater quand l'utilisateur quitte le champ
+                          const formatted = formatPrice(e.target.value);
+                          handleInputChange('price', formatted);
+                        }}
                         placeholder="0.00"
                       />
-                    </div>
+                    </div> */}
                   </div>
                 </form>
               </CardContent>
@@ -308,82 +425,127 @@ export default function EditProductPage() {
               <CardHeader>
                 <CardTitle>Variantes</CardTitle>
                 <CardDescription>
-                  Gérez les tailles, couleurs et autres variantes
+                  Gérez les combinaisons d'attributs (taille, couleur, etc.)
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <div className="flex gap-2">
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => addVariant('size')}
-                    >
-                      <Plus className="mr-2 h-4 w-4" />
-                      Taille
-                    </Button>
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => addVariant('color')}
-                    >
-                      <Plus className="mr-2 h-4 w-4" />
-                      Couleur
-                    </Button>
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => addVariant('custom')}
-                    >
-                      <Plus className="mr-2 h-4 w-4" />
-                      Autre
-                    </Button>
-                  </div>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={addVariant}
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Ajouter une finition
+                  </Button>
 
-                  {variants.map((variant) => (
+                  {variants.map((variant, index) => (
                     <div key={variant.id} className="p-4 border rounded-lg space-y-4">
                       <div className="flex justify-between items-center">
-                        <Badge variant="outline">
-                          {variant.type === 'size' && '📏 Taille'}
-                          {variant.type === 'color' && '🎨 Couleur'}
-                          {variant.type === 'custom' && '⚙️ Variante'}
-                        </Badge>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-sm">Finition {index + 1} dispo en : </span>
+                          {variant.attributes.map(attr => (
+                            <Badge key={attr.attribute_id} variant="secondary" className="text-xs">
+                              {getAttributeIcon(attr.attribute_name)} {attr.value}
+                            </Badge>
+                          ))}
+                        </div>
                         <Button
                           type="button"
                           variant="ghost"
                           size="sm"
                           onClick={() => removeVariant(variant.id)}
                         >
-                          <X className="h-4 w-4" />
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
+
                       
-                      <div className="grid gap-4 sm:grid-cols-2">
-                        <div>
-                          <Label>Valeur *</Label>
-                          <Input
-                            value={variant.value}
-                            onChange={(e) => updateVariant(variant.id, 'value', e.target.value)}
-                            placeholder={
-                              variant.type === 'size' ? 'Ex: M, L, XL' : 
-                              variant.type === 'color' ? 'Ex: Rouge, Bleu' : 
-                              'Ex: Coton, Lin'
-                            }
-                          />
-                        </div>
+                      {/* Attributs de la variante */}
+                      <div className="space-y-3">
+                        <Label className="text-sm font-medium">Attributs</Label>
                         
+                        {variant.attributes.map((attr) => {
+                          const attribute = attributes.find(a => a.id === attr.attribute_id)
+                          if (!attribute) return null
+
+                          return (
+                            <div key={attr.attribute_id} className="flex gap-2 items-center">
+                              <div className="flex-1">
+                                <Select
+                                  value={attr.value_id}
+                                  onValueChange={(value) => updateVariantAttribute(variant.id, attr.attribute_id, value)}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue>
+                                      {getAttributeIcon(attr.attribute_name)} {attr.attribute_name}: {attr.value}
+                                    </SelectValue>
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {attribute.values.map((val) => (
+                                      <SelectItem key={val.id} value={val.id}>
+                                        {val.value}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => removeAttributeFromVariant(variant.id, attr.attribute_id)}
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          )
+                        })}
+
+                        {/* Ajouter un attribut */}
+                        {getAvailableAttributes(variant).length > 0 && (
+                          <Select
+                            value=""
+                            onValueChange={(value) => addAttributeToVariant(variant.id, value)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="+ Ajouter un attribut" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {getAvailableAttributes(variant).map((attr) => (
+                                <SelectItem key={attr.id} value={attr.id}>
+                                  {getAttributeIcon(attr.name)} {attr.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
+                      </div>
+
+                      {/* Stock et prix */}
+                      <div className="grid gap-4 sm:grid-cols-2">
                         <div>
                           <Label>Stock</Label>
                           <Input
                             type="number"
                             min="0"
-                            value={variant.stockQuantity}
-                            onChange={(e) => updateVariant(variant.id, 'stockQuantity', parseInt(e.target.value) || 0)}
+                            value={variant.stock_quantity}
+                            onChange={(e) => updateVariantField(variant.id, 'stock_quantity', parseInt(e.target.value) || 0)}
                             placeholder="0"
                           />
+                        </div>
+                        
+                        <div>
+                          <Label>Prix</Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={variant.price}
+                            onChange={(e) => updateVariantField(variant.id, 'price', parseFloat(e.target.value) || 0)}
+                            placeholder="0.00"
+                          />
+
                         </div>
                       </div>
                     </div>
@@ -392,7 +554,7 @@ export default function EditProductPage() {
                   {variants.length === 0 && (
                     <div className="text-center py-8 text-muted-foreground">
                       <p className="mb-2">Aucune variante</p>
-                      <p className="text-sm">Ajoutez des tailles, couleurs ou autres options</p>
+                      <p className="text-sm">Ajoutez des variantes pour gérer le stock par taille, couleur, etc.</p>
                     </div>
                   )}
                 </div>
@@ -493,17 +655,24 @@ export default function EditProductPage() {
                 </CardHeader>
                 <CardContent className="space-y-2">
                   <p className="font-medium">{formData.name}</p>
-                  {formData.price && (
+{/*                   {formData.price && (
                     <p className="text-lg font-bold text-green-600">
-                      {formData.price}€
+                      <span>
+                        À partir de {formatPrice(formData.price)} DZD
+                      </span>
                     </p>
-                  )}
+                  )} */}
                   <p className="text-sm text-muted-foreground">
                     {variants.length} variante{variants.length > 1 ? 's' : ''}
                   </p>
                   <p className="text-sm text-muted-foreground">
                     {existingImages.length + newImages.length} image{(existingImages.length + newImages.length) > 1 ? 's' : ''}
                   </p>
+                  {variants.length > 0 && (
+                    <div className="text-sm text-muted-foreground">
+                      Stock total: {variants.reduce((sum, v) => sum + v.stock_quantity, 0)} unités
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             )}

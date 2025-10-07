@@ -18,6 +18,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
+import { ClientLayout } from '@/components/layout/ClientLayout'
 
 interface Product {
   id: string
@@ -71,7 +72,8 @@ export default function ProductsPage() {
         ])
         
         let sortedProducts = [...productsData.products]
-        
+                console.log(sortedProducts)
+
         // Tri
         switch (filters.sortBy) {
           case 'price-asc':
@@ -104,6 +106,20 @@ export default function ProductsPage() {
     setFilters(prev => ({ ...prev, [key]: value }))
   }
 
+  const formatPrice = (price: number | string): string => {
+    const num = typeof price === 'string' ? parseFloat(price) : price;
+    
+    if (isNaN(num)) return '0';
+    
+    // Si c'est un nombre entier, pas de décimales
+    if (num === Math.floor(num)) {
+      return num.toString();
+    }
+    
+    // Sinon, afficher avec 2 décimales
+    return num.toFixed(2);
+  }
+
   const clearFilters = () => {
     setFilters({
       search: '',
@@ -123,14 +139,8 @@ export default function ProductsPage() {
 
   if (loading) {
     return (
+      <ClientLayout>
       <div className="min-h-screen bg-gray-50">
-        {/* Navigation placeholder */}
-        <header className="bg-white border-b">
-          <div className="container mx-auto px-4 py-4">
-            <div className="h-8 bg-gray-200 rounded w-48 animate-pulse"></div>
-          </div>
-        </header>
-
         <main className="container mx-auto px-4 py-8">
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {[...Array(12)].map((_, i) => (
@@ -146,32 +156,13 @@ export default function ProductsPage() {
           </div>
         </main>
       </div>
+      </ClientLayout>
     )
   }
 
   return (
+    <ClientLayout>
     <div className="min-h-screen bg-gray-50">
-      {/* Navigation simple */}
-      <header className="bg-white border-b sticky top-0 z-40">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex justify-between items-center">
-            <Link href="/" className="text-2xl font-bold text-primary">
-              Fashion Market
-            </Link>
-            <nav className="hidden md:flex items-center space-x-6">
-              <Link href="/products" className="font-medium text-primary">
-                Produits
-              </Link>
-              <Link href="/shops" className="text-muted-foreground hover:text-foreground">
-                Créateurs
-              </Link>
-              <Link href="/login" className="text-muted-foreground hover:text-foreground">
-                Se connecter
-              </Link>
-            </nav>
-          </div>
-        </div>
-      </header>
 
       <main className="container mx-auto px-4 py-8">
         <div className="flex flex-col lg:flex-row gap-8">
@@ -358,20 +349,20 @@ export default function ProductsPage() {
                         )}
                         
                         {/* Badge prix */}
-                        {product.price && (
+                        {/* {product.price && (
                           <div className="absolute top-3 left-3">
                             <Badge className="bg-white text-black hover:bg-white">
-                              {product.price}€
+                              {formatPrice(product.price)} DZD
                             </Badge>
                           </div>
-                        )}
+                        )} */}
                         
                         {/* Bouton favoris */}
-                        <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {/* <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
                           <Button size="icon" variant="secondary" className="h-8 w-8">
                             <Heart className="h-4 w-4" />
                           </Button>
-                        </div>
+                        </div> */}
                       </div>
                     </Link>
                     
@@ -408,17 +399,17 @@ export default function ProductsPage() {
                         <div className="flex justify-between items-center pt-2">
                           {product.price ? (
                             <span className="text-xl font-bold text-green-600">
-                              {product.price}€
+                              {formatPrice(product.price)} DZD
                             </span>
                           ) : (
                             <span className="text-sm text-muted-foreground">Prix sur demande</span>
                           )}
                           
-                          <Button size="sm" asChild>
+{/*                           <Button size="sm" asChild>
                             <Link href={`/products/${product.id}`}>
                               Voir détails
                             </Link>
-                          </Button>
+                          </Button> */}
                         </div>
                       </div>
                     </CardContent>
@@ -430,5 +421,6 @@ export default function ProductsPage() {
         </div>
       </main>
     </div>
+    </ClientLayout>
   )
 }

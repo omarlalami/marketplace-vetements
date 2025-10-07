@@ -131,15 +131,15 @@ export default function ShopsPage() {
 
                     <div className="flex gap-2">
                       <Button size="sm" className="flex-1" asChild>
-                        <Link href={`/dashboard/shops/${shop.id}`}>
+                        <Link href={`/dashboard/shops/${shop.id}/edit`}>
                           Gérer
                         </Link>
                       </Button>
-                      <Button variant="outline" size="sm" asChild>
+{/*                       <Button variant="outline" size="sm" asChild>
                         <Link href={`/dashboard/shops/${shop.id}/products`}>
                           Produits
                         </Link>
-                      </Button>
+                      </Button> */}
                     </div>
                   </div>
                 </CardContent>

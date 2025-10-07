@@ -33,6 +33,17 @@ import {
 import Link from 'next/link'
 import Image from 'next/image'
 
+interface Variant {
+  id: string
+  stock_quantity: number
+  price_modifier: number
+  attribute_values: Array<{
+    id: number
+    attribute: string // ex: "Couleur" ou "Taille"
+    value: string // ex: "Rouge", "M"
+  }>
+}
+
 interface Product {
   id: string
   name: string
@@ -43,11 +54,7 @@ interface Product {
   category_name: string
   primary_image: string
   created_at: string
-  variants?: Array<{
-    type: string
-    value: string
-    stock_quantity: number
-  }>
+  variants?: Variant[]
   images?: Array<{
     url: string
     is_primary: boolean
@@ -119,6 +126,20 @@ export default function ProductsPage() {
 
     setFilteredProducts(filtered)
   }, [products, searchTerm, selectedShop])
+
+  const formatPrice = (price: number | string): string => {
+    const num = typeof price === 'string' ? parseFloat(price) : price;
+    
+    if (isNaN(num)) return '0';
+    
+    // Si c'est un nombre entier, pas de décimales
+    if (num === Math.floor(num)) {
+      return num.toString();
+    }
+    
+    // Sinon, afficher avec 2 décimales
+    return num.toFixed(2);
+  }
 
   const handleDelete = async (productId: string, productName: string) => {
     try {
@@ -300,7 +321,7 @@ export default function ProductsPage() {
                   {product.price && (
                     <div className="absolute bottom-2 left-2">
                       <Badge className="bg-green-600 hover:bg-green-700">
-                        {product.price}€
+                        {formatPrice(product.price)} DZD
                       </Badge>
                     </div>
                   )}
@@ -391,21 +412,17 @@ export default function ProductsPage() {
                     )}
 
                     {/* Variantes */}
-                    {product.variants && product.variants.length > 0 && (
-                      <div className="flex flex-wrap gap-1">
-                        {product.variants.slice(0, 3).map((variant, index) => (
-                          <Badge key={index} variant="outline" className="text-xs">
-                            {variant.value}
-                          </Badge>
-                        ))}
-                        {product.variants.length > 3 && (
-                          <Badge variant="outline" className="text-xs">
-                            +{product.variants.length - 3}
-                          </Badge>
-                        )}
-                      </div>
-                    )}
 
+                  {/* Variantes */}
+                  {product.variants && product.variants.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {product.variants.map((variant) => (
+                        <Badge key={variant.id} variant="outline" className="text-xs">
+                          {variant.attribute_values.map(av => `${av.attribute}: ${av.value}`).join(', ')}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
                     {/* Stats */}
                     <div className="flex justify-between items-center text-xs text-muted-foreground">
                       <span>

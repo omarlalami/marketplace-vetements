@@ -1,4 +1,3 @@
-
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -8,21 +7,13 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ImageUpload } from '@/components/ui/image-upload'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { apiClient } from '@/lib/api'
-import { ArrowLeft, Plus, X } from 'lucide-react'
+import { ArrowLeft, Plus } from 'lucide-react'
 import Link from 'next/link'
-
-interface Variant {
-  id: string
-  name: string
-  type: 'size' | 'color' | 'custom'
-  value: string
-  stockQuantity: number
-}
 
 export default function CreateProductPage() {
   const [formData, setFormData] = useState({
@@ -31,27 +22,31 @@ export default function CreateProductPage() {
     shopId: '',
     categoryId: '',
     price: '',
+    stockQuantity :'',
   })
-  
-  const [variants, setVariants] = useState<Variant[]>([])
+
+  const [shops, setShops] = useState<any[]>([])
+  const [categories, setCategories] = useState<any[]>([])
+  const [attributes, setAttributes] = useState<any[]>([])
+  const [selectedAttributes, setSelectedAttributes] = useState<Record<string, string[]>>({})
+  const [generatedVariants, setGeneratedVariants] = useState<any[]>([])
   const [selectedImages, setSelectedImages] = useState<File[]>([])
-  const [shops, setShops] = useState([])
-  const [categories, setCategories] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  
   const router = useRouter()
 
-  // Charger les boutiques et catégories
+  // 🟢 Charger données initiales
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [shopsData, categoriesData] = await Promise.all([
+        const [shopsData, categoriesData, attributesData] = await Promise.all([
           apiClient.getMyShops(),
-          apiClient.getCategories()
+          apiClient.getCategories(),
+          apiClient.getAttributes(),
         ])
         setShops(shopsData.shops)
         setCategories(categoriesData.categories)
+        setAttributes(attributesData.attributes)
       } catch (error) {
         console.error('Erreur chargement données:', error)
       }
@@ -59,56 +54,80 @@ export default function CreateProductPage() {
     fetchData()
   }, [])
 
+  // 🟠 Gérer changements input principal
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
   }
 
-  const addVariant = (type: 'size' | 'color' | 'custom') => {
-    const newVariant: Variant = {
-      id: Date.now().toString(),
-      name: type === 'size' ? 'Taille' : type === 'color' ? 'Couleur' : 'Variante',
-      type,
-      value: '',
-      stockQuantity: 0
+  // 🟣 Ajouter / retirer une valeur d’attribut
+  const toggleAttributeValue = (attrId: string, valId: string) => {
+    setSelectedAttributes(prev => {
+      const current = prev[attrId] || []
+      const exists = current.includes(valId)
+      return {
+        ...prev,
+        [attrId]: exists
+          ? current.filter(v => v !== valId)
+          : [...current, valId],
+      }
+    })
+  }
+
+  // 🧮 Génération automatique des variantes (produit cartésien)
+  useEffect(() => {
+    const all = Object.entries(selectedAttributes)
+      .filter(([_, vals]) => vals.length > 0)
+      .map(([attrId, vals]) => vals.map(v => ({ attrId, valueId: v })))
+
+    if (all.length === 0) {
+      setGeneratedVariants([])
+      return
     }
-    setVariants(prev => [...prev, newVariant])
-  }
 
-  const updateVariant = (id: string, field: keyof Variant, value: string | number) => {
-    setVariants(prev => prev.map(variant => 
-      variant.id === id ? { ...variant, [field]: value } : variant
-    ))
-  }
+    const combine = (arr: any[][]): any[][] =>
+      arr.reduce((a, b) => a.flatMap(x => b.map(y => [...x, y])), [[]])
 
-  const removeVariant = (id: string) => {
-    setVariants(prev => prev.filter(variant => variant.id !== id))
-  }
+    const combinations = combine(all)
+    const variants = combinations.map((attrs, i) => ({
+      id: `auto-${i}`,
+      attributes: attrs,
+      stockQuantity: 0,
+      priceModifier: 0,
+    }))
 
+    setGeneratedVariants(variants)
+  }, [selectedAttributes])
+
+  // 🔵 Gestion du formulaire
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
     setLoading(true)
 
     try {
-      // Créer le produit
+      if (generatedVariants.length > 0 && generatedVariants.some(v => v.attributes.length === 0)) {
+        setError('Toutes les variantes doivent contenir au moins un attribut.')
+        setLoading(false)
+        return
+      }
+
       const productData = {
         name: formData.name,
         description: formData.description,
         shopId: formData.shopId,
         categoryId: formData.categoryId || undefined,
         price: formData.price ? parseFloat(formData.price) : undefined,
-        variants: variants.map(v => ({
-          name: v.name,
-          type: v.type,
-          value: v.value,
-          stockQuantity: v.stockQuantity
-        }))
+        stockQuantity : formData.stockQuantity ? parseFloat(formData.stockQuantity) : undefined,
+        variants: generatedVariants.map(v => ({
+          stockQuantity: formData.stockQuantity ? v.stockQuantity : undefined,
+          price: formData.price ? parseFloat(formData.price) : undefined,
+          attributeValueIds: v.attributes.map((a: { valueId: string }) => a.valueId),
+        })),
       }
 
       const response = await apiClient.createProduct(productData)
       const productId = response.product.id
 
-      // Upload des images si présentes
       if (selectedImages.length > 0) {
         await apiClient.uploadProductImages(productId, selectedImages)
       }
@@ -121,15 +140,12 @@ export default function CreateProductPage() {
     }
   }
 
-  const flatCategories = categories.flatMap((category: any) => [
-    category,
-    ...(category.children || [])
-  ])
+  const flatCategories = categories.flatMap((c: any) => [c, ...(c.children || [])])
 
   return (
     <DashboardLayout>
-      <div className="max-w-4xl mx-auto space-y-6">
-        {/* Breadcrumb */}
+      <div className="max-w-5xl mx-auto space-y-6">
+        {/* Bouton retour */}
         <div className="flex items-center space-x-4">
           <Button variant="ghost" size="sm" asChild>
             <Link href="/dashboard/products">
@@ -139,208 +155,189 @@ export default function CreateProductPage() {
           </Button>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-3">
-          {/* Formulaire principal */}
+        <form onSubmit={handleSubmit} className="grid gap-6 lg:grid-cols-3">
           <div className="lg:col-span-2 space-y-6">
+            {/* Informations générales */}
             <Card>
               <CardHeader>
                 <CardTitle>Informations générales</CardTitle>
-                <CardDescription>
-                  Les informations de base de votre produit
-                </CardDescription>
               </CardHeader>
-              <CardContent>
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  {error && (
-                    <div className="p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md">
-                      {error}
-                    </div>
-                  )}
+              <CardContent className="space-y-4">
+                {error && <div className="text-red-600">{error}</div>}
 
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Nom du produit *</Label>
+                <div>
+                  <Label>Nom du produit *</Label>
+                  <Input
+                    value={formData.name}
+                    onChange={(e) => handleInputChange('name', e.target.value)}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <Label>Description</Label>
+                  <Textarea
+                    value={formData.description}
+                    onChange={(e) => handleInputChange('description', e.target.value)}
+                  />
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <Label>Boutique *</Label>
+                    <Select
+                      value={formData.shopId}
+                      onValueChange={(v) => handleInputChange('shopId', v)}
+                    >
+                      <SelectTrigger><SelectValue placeholder="Choisir" /></SelectTrigger>
+                      <SelectContent>
+                        {shops.map((s) => (
+                          <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label>Catégorie</Label>
+                    <Select
+                      value={formData.categoryId}
+                      onValueChange={(v) => handleInputChange('categoryId', v)}
+                    >
+                      <SelectTrigger><SelectValue placeholder="Choisir" /></SelectTrigger>
+                      <SelectContent>
+                        {flatCategories.map((c: any) => (
+                          <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <Label>Prix *</Label>
                     <Input
-                      id="name"
-                      value={formData.name}
-                      onChange={(e) => handleInputChange('name', e.target.value)}
-                      placeholder="Ex: T-shirt vintage brodé"
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="description">Description</Label>
-                    <Textarea
-                      id="description"
-                      value={formData.description}
-                      onChange={(e) => handleInputChange('description', e.target.value)}
-                      placeholder="Décrivez votre produit, les matériaux, l'inspiration..."
-                      rows={4}
-                    />
-                  </div>
-
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="space-y-2">
-                      <Label>Boutique *</Label>
-                      <Select 
-                        value={formData.shopId} 
-                        onValueChange={(value) => handleInputChange('shopId', value)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Choisir une boutique" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {shops.map((shop: any) => (
-                            <SelectItem key={shop.id} value={shop.id}>
-                              {shop.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>Catégorie</Label>
-                      <Select 
-                        value={formData.categoryId} 
-                        onValueChange={(value) => handleInputChange('categoryId', value)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Choisir une catégorie" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {flatCategories.map((category: any) => (
-                            <SelectItem key={category.id} value={category.id}>
-                              {category.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="price">Prix (€)</Label>
-                    <Input
-                      id="price"
                       type="number"
                       step="0.01"
-                      min="0"
                       value={formData.price}
                       onChange={(e) => handleInputChange('price', e.target.value)}
-                      placeholder="0.00"
                     />
                   </div>
-                </form>
+
+                  <div>
+                    <Label>Stock *</Label>
+                    <Input
+                      type="number"
+                      value={formData.stockQuantity}
+                      onChange={(e) => handleInputChange('stockQuantity', e.target.value)}
+                    />
+                  </div>
+                </div>
               </CardContent>
             </Card>
 
-            {/* Variantes */}
+            {/* Sélection des attributs */}
             <Card>
               <CardHeader>
-                <CardTitle>Variantes</CardTitle>
-                <CardDescription>
-                  Ajoutez des tailles, couleurs ou autres variantes
+                <CardTitle>Creer des variantes du produit</CardTitle>
+                 <CardDescription>
+                  Gérez les combinaisons d'attributs (taille, couleur, etc.)
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex gap-2">
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => addVariant('size')}
-                    >
-                      <Plus className="mr-2 h-4 w-4" />
-                      Taille
-                    </Button>
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => addVariant('color')}
-                    >
-                      <Plus className="mr-2 h-4 w-4" />
-                      Couleur
-                    </Button>
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => addVariant('custom')}
-                    >
-                      <Plus className="mr-2 h-4 w-4" />
-                      Autre
-                    </Button>
+              <CardContent className="space-y-4">
+                {attributes.map(attr => (
+                  <div key={attr.id}>
+                    <Label className="font-semibold">{attr.name}</Label>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {attr.values.map((val: any) => {
+                        const selected = selectedAttributes[attr.id]?.includes(val.id)
+                        return (
+                          <Button
+                            key={val.id}
+                            variant={selected ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => toggleAttributeValue(attr.id, val.id)}
+                            type="button"
+                          >
+                            {val.value}
+                          </Button>
+                        )
+                      })}
+                    </div>
                   </div>
+                ))}
+              </CardContent>
+            </Card>
 
-                  {variants.map((variant) => (
-                    <div key={variant.id} className="p-4 border rounded-lg space-y-4">
-                      <div className="flex justify-between items-center">
-                        <Badge variant="outline">
-                          {variant.type === 'size' && '📏 Taille'}
-                          {variant.type === 'color' && '🎨 Couleur'}
-                          {variant.type === 'custom' && '⚙️ Variante'}
-                        </Badge>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeVariant(variant.id)}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
+            {/* Variantes générées */}
+            {/* {generatedVariants.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Variantes générées automatiquement</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {generatedVariants.map((variant) => (
+                    <div key={variant.id} className="border rounded-lg p-4 space-y-4">
+                      <div className="flex flex-wrap gap-2">
+                        {variant.attributes.map((a: any, i: number) => {
+                          const attrDef = attributes.find(at => at.id === a.attrId)
+                          const valDef = attrDef?.values.find((v: any) => v.id === a.valueId)
+                          return (
+                            <Badge key={i} variant="secondary">
+                              {attrDef?.name}: {valDef?.value}
+                            </Badge>
+                          )
+                        })}
                       </div>
-                      
-                      <div className="grid gap-4 sm:grid-cols-2">
-                        <div>
-                          <Label>Valeur *</Label>
-                          <Input
-                            value={variant.value}
-                            onChange={(e) => updateVariant(variant.id, 'value', e.target.value)}
-                            placeholder={
-                              variant.type === 'size' ? 'Ex: M, L, XL' : 
-                              variant.type === 'color' ? 'Ex: Rouge, Bleu' : 
-                              'Ex: Coton, Lin'
-                            }
-                          />
-                        </div>
-                        
+
+                      <div className="grid sm:grid-cols-2 gap-4">
                         <div>
                           <Label>Stock</Label>
                           <Input
                             type="number"
-                            min="0"
                             value={variant.stockQuantity}
-                            onChange={(e) => updateVariant(variant.id, 'stockQuantity', parseInt(e.target.value) || 0)}
-                            placeholder="0"
+                            onChange={(e) =>
+                              setGeneratedVariants(prev =>
+                                prev.map(v =>
+                                  v.id === variant.id
+                                    ? { ...v, stockQuantity: parseInt(e.target.value) || 0 }
+                                    : v
+                                )
+                              )
+                            }
+                          />
+                        </div>
+                        <div>
+                          <Label>Change le prix pour cette finition (+/-)</Label>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            value={variant.priceModifier}
+                            onChange={(e) =>
+                              setGeneratedVariants(prev =>
+                                prev.map(v =>
+                                  v.id === variant.id
+                                    ? { ...v, priceModifier: parseFloat(e.target.value) || 0 }
+                                    : v
+                                )
+                              )
+                            }
                           />
                         </div>
                       </div>
                     </div>
                   ))}
-
-                  {variants.length === 0 && (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <p className="mb-2">Aucune variante ajoutée</p>
-                      <p className="text-sm">Ajoutez des tailles, couleurs ou autres options pour votre produit</p>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            )} */}
           </div>
 
-          {/* Sidebar - Images et actions */}
+          {/* Sidebar */}
           <div className="space-y-6">
-            {/* Upload d'images */}
             <Card>
               <CardHeader>
                 <CardTitle>Images du produit</CardTitle>
-                <CardDescription>
-                  Ajoutez des photos attractives de votre produit
-                </CardDescription>
               </CardHeader>
               <CardContent>
                 <ImageUpload
@@ -351,57 +348,19 @@ export default function CreateProductPage() {
               </CardContent>
             </Card>
 
-            {/* Actions */}
             <Card>
               <CardContent className="pt-6">
-                <div className="space-y-4">
-                  <Button 
-                    onClick={handleSubmit}
-                    disabled={loading || !formData.name || !formData.shopId}
-                    className="w-full"
-                  >
-                    {loading ? 'Création...' : 'Créer le produit'}
-                  </Button>
-                  
-                  <Button variant="outline" className="w-full" asChild>
-                    <Link href="/dashboard/products">
-                      Annuler
-                    </Link>
-                  </Button>
-
-                  {!formData.shopId && (
-                    <p className="text-sm text-amber-600 text-center">
-                      ⚠️ Vous devez d'abord sélectionner une boutique
-                    </p>
-                  )}
-                </div>
+                <Button
+                  type="submit"
+                  disabled={loading || !formData.name || !formData.shopId || !formData.price || !formData.stockQuantity}
+                  className="w-full"
+                >
+                  {loading ? 'Création...' : 'Créer le produit'}
+                </Button>
               </CardContent>
             </Card>
-
-            {/* Aperçu */}
-            {formData.name && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">Aperçu</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <p className="font-medium">{formData.name}</p>
-                  {formData.price && (
-                    <p className="text-lg font-bold text-green-600">
-                      {formData.price}€
-                    </p>
-                  )}
-                  <p className="text-sm text-muted-foreground">
-                    {variants.length} variante{variants.length > 1 ? 's' : ''}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    {selectedImages.length} image{selectedImages.length > 1 ? 's' : ''}
-                  </p>
-                </CardContent>
-              </Card>
-            )}
           </div>
-        </div>
+        </form>
       </div>
     </DashboardLayout>
   )

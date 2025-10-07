@@ -2,6 +2,12 @@
 
 import axios, { AxiosInstance } from 'axios'
 
+interface VariantInput {
+  id?: string // optionnel pour les nouvelles variantes
+  stockQuantity: number
+  price: number
+  attributes: string[] // on va tester en remplacant string par number
+}
 class ApiClient {
   private client: AxiosInstance
 
@@ -68,6 +74,7 @@ class ApiClient {
 
   async getCategories() {
     const response = await this.client.get('/categories')
+    console.log(response.data)
     return response.data
   }
 
@@ -91,6 +98,25 @@ class ApiClient {
     const response = await this.client.get(`/shops/${slug}`)
     return response.data
   }
+  
+  async getShopForEdit(id: string) {
+    const response = await this.client.get(`/shops/edit/${id}`)
+    return response.data
+  }
+
+  async updateShop(id: string, data: {
+    name?: string
+    description?: string
+    logoUrl?: string
+  }) {
+    const response = await this.client.put(`/shops/${id}`, data)
+    return response.data
+  }
+  
+  async deleteShop(id: string) {
+    const response = await this.client.delete(`/shops/${id}`)
+    return response.data
+  }
 
   async getAllShops(params?: {
     search?: string
@@ -103,23 +129,23 @@ class ApiClient {
   }
 
   // Products
-  async createProduct(data: {
-    name: string
-    description?: string
-    shopId: string
-    categoryId?: string
+async createProduct(data: {
+  name: string
+  description?: string
+  shopId: string
+  categoryId?: string
+  price?: number
+  stockQuantity ?: number
+  variants?: Array<{
+    stockQuantity: number
     price?: number
-    variants?: Array<{
-      name: string
-      type: string
-      value: string
-      stockQuantity: number
-    }>
-  })  
-  {
-    const response = await this.client.post('/products', data)
-    return response.data
-  }
+    attributeValueIds: string[]
+  }>
+}) {
+    console.log("valeur ici " + JSON.stringify(data))
+  const response = await this.client.post('/products', data)
+  return response.data
+}
 
   async getProduct(id: string) {
     const response = await this.client.get(`/products/${id}`)
@@ -163,26 +189,28 @@ class ApiClient {
     page?: number
   }) {
     const response = await this.client.get(`/products/shop/${shopId}/products`, { params })
+    console.log(response.data)
     return response.data
   }
 
   async getProductForEdit(id: string) {
     const response = await this.client.get(`/products/${id}/edit`)
+    console.log(response.data)
     return response.data
   }
 
-  async updateProduct(id: string, data: {
-    name: string
-    description?: string
-    categoryId?: string
-    price?: number
-    variants?: Array<{
+  // Méthode pour mettre à jour un produit
+  async updateProduct(
+    id: string,
+    data: {
       name: string
-      type: string
-      value: string
-      stockQuantity: number
-    }>
-  }) {
+      description?: string
+      categoryId?: string
+      variants?: VariantInput[] // Utilisez VariantInput au lieu de Variant
+    }
+  ) {
+          console.log("donne envoyer de l'api")
+        console.log(data)
     const response = await this.client.put(`/products/${id}`, data)
     return response.data
   }
@@ -197,6 +225,79 @@ class ApiClient {
     return response.data
   }
   
+  // Order
+  async createOrder(payload: {
+    items: Array<{
+      id: string
+      productId: string
+      variantId: string
+      name: string
+      price: number
+      quantity: number
+      image?: string
+      shopName?: string
+      shopSlug?: string
+      selectedVariants?: Record<string, string>
+    }>
+    address: {
+      firstName: string
+      lastName: string
+      line: string
+      city: string
+      postalCode: string
+      country: string
+      phone: string
+      email: string
+    }
+    total: number
+  }) {
+    const response = await this.client.post('/orders', payload)
+    return response.data as {
+      ok: boolean
+      message: string
+      id: string // global order ID
+      order_number: string
+      order: {
+        id: string
+        order_number: string
+        subtotal: number
+        total_amount: number
+        status: string
+      }
+      shop_orders: Array<{
+        id: string
+        shop_id: string
+        shop_name: string
+        subtotal: number
+        total_amount: number
+        items: Array<{
+          id: string
+          product_name: string
+          quantity: number
+          unit_price: number
+          subtotal: number
+        }>
+      }>
+    }
   }
+
+  async getMyOrders(params?: { status?: string; limit?: number }) {
+    const response = await this.client.get('/orders/my-orders', { params })
+    return response.data
+  }
+
+  async getOrderById(orderId: string) {
+    const response = await this.client.get(`/orders/${orderId}`);
+    return response.data;
+  }
+
+  // ⚡ Récupérer les attributs (avec leurs valeurs)
+  async getAttributes() {
+    const response = await this.client.get('/attributes')
+    console.log(response.data)
+    return response.data
+  }
+
+}
 
 export const apiClient = new ApiClient()
