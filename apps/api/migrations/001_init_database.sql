@@ -112,15 +112,14 @@ CREATE INDEX idx_categories_slug ON categories(slug);
 
 
 
--- Table des commandes (1 commande = 1 shop)
+-- =========================================
+-- COMMANDE GLOBALE (client)
+-- =========================================
 CREATE TABLE orders (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   order_number VARCHAR(50) UNIQUE NOT NULL, -- Ex: ORD-2024-001234
   user_id UUID REFERENCES users(id),
-  shop_id UUID NOT NULL REFERENCES shops(id), -- ⚡ Une commande appartient à UN seul shop
-  
-  status VARCHAR(50) DEFAULT 'pending', -- pending, confirmed, processing, shipped, delivered, cancelled, refunded
-  
+    
   -- Montants
   subtotal DECIMAL(10,2) NOT NULL, -- Total des items
   shipping_cost DECIMAL(10,2) DEFAULT 0,
@@ -136,7 +135,30 @@ CREATE TABLE orders (
   payment_id VARCHAR(255), -- ID de transaction externe (Stripe, PayPal, etc.)
   
   notes TEXT, -- Notes du client
-  
+
+  status VARCHAR(50) DEFAULT 'pending', -- pending, confirmed, processing, shipped, delivered, cancelled, refunded
+
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- =========================================
+-- SOUS-COMMANDES PAR VENDEUR
+-- =========================================
+CREATE TABLE shop_orders (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  order_id UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+  shop_id UUID NOT NULL REFERENCES shops(id),
+
+  subtotal DECIMAL(10,2) NOT NULL,
+  shipping_cost DECIMAL(10,2) DEFAULT 0,
+  tax DECIMAL(10,2) DEFAULT 0,
+  total_amount DECIMAL(10,2) NOT NULL,
+
+  status VARCHAR(50) DEFAULT 'pending',             -- statut spécifique par vendeur
+  tracking_number VARCHAR(100),
+  estimated_delivery_date DATE,
+
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -144,7 +166,7 @@ CREATE TABLE orders (
 -- Articles de commande
 CREATE TABLE order_items (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  order_id UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+  shop_order_id UUID NOT NULL REFERENCES shop_orders(id) ON DELETE CASCADE,
   product_id UUID NOT NULL REFERENCES products(id),
   product_variant_id UUID NOT NULL REFERENCES product_variants(id),
   
@@ -163,7 +185,7 @@ CREATE TABLE order_items (
 -- Historique des statuts de commande
 CREATE TABLE order_status_history (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  order_id UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+  shop_order_id UUID REFERENCES shop_orders(id) ON DELETE CASCADE,
   status VARCHAR(50) NOT NULL,
   comment TEXT,
   created_by UUID REFERENCES users(id), -- Qui a changé le statut (vendeur/admin)
@@ -172,10 +194,11 @@ CREATE TABLE order_status_history (
 
 -- Index pour les performances
 CREATE INDEX idx_orders_user_id ON orders(user_id);
-CREATE INDEX idx_orders_shop_id ON orders(shop_id);
 CREATE INDEX idx_orders_status ON orders(status);
 CREATE INDEX idx_orders_created_at ON orders(created_at DESC);
-CREATE INDEX idx_order_items_order_id ON order_items(order_id);
+CREATE INDEX idx_shop_orders_shop_id ON shop_orders(shop_id);
+CREATE INDEX idx_shop_orders_status ON shop_orders(status);
+CREATE INDEX idx_order_items_shop_order_id ON order_items(shop_order_id);
 CREATE INDEX idx_order_items_product_variant_id ON order_items(product_variant_id);
 
 -- Table du panier (avant commande)

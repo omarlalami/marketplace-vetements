@@ -42,7 +42,7 @@ export default function CheckoutPage() {
       
       // Rediriger vers la page de confirmation
       // Si plusieurs commandes, on redirige vers la première
-      router.push(`/order/confirmation/${result.id}`)
+      router.push(`/order/confirmation/${result.order.id}`)
 
     } catch (err: any) {
       console.error('Erreur submit order', err)

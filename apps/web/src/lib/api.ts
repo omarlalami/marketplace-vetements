@@ -252,7 +252,33 @@ async createProduct(data: {
     total: number
   }) {
     const response = await this.client.post('/orders', payload)
-    return response.data
+    return response.data as {
+      ok: boolean
+      message: string
+      id: string // global order ID
+      order_number: string
+      order: {
+        id: string
+        order_number: string
+        subtotal: number
+        total_amount: number
+        status: string
+      }
+      shop_orders: Array<{
+        id: string
+        shop_id: string
+        shop_name: string
+        subtotal: number
+        total_amount: number
+        items: Array<{
+          id: string
+          product_name: string
+          quantity: number
+          unit_price: number
+          subtotal: number
+        }>
+      }>
+    }
   }
 
   async getMyOrders(params?: { status?: string; limit?: number }) {

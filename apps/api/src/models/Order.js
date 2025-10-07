@@ -21,283 +21,323 @@ class Order {
    *   selectedVariants?: { attribute: value }
    * }]
    */
-  static async createOrder(userId, payload) {
+static async createOrder(userId, payload) {
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    const { items, address } = payload;
+
+    // --- Validation ---
+    if (!items || items.length === 0) throw new Error('Le panier est vide');
+    if (!address || !address.firstName || !address.lastName || !address.line)
+      throw new Error('Adresse de livraison incomplète');
+
+    // --- Format shipping address ---
+    const shippingAddress = {
+      name: `${address.firstName} ${address.lastName}`,
+      street: address.line,
+      city: address.city,
+      postal_code: address.postalCode,
+      country: address.country,
+      phone: address.phone,
+      email: address.email
+    };
+
+    // --- Retrieve product/variant data ---
+    const variantIds = items.map(i => i.variantId);
+
+    const productsQuery = `
+      SELECT 
+        p.id AS product_id,
+        p.name AS product_name,
+        p.shop_id,
+        s.name AS shop_name,
+        s.slug AS shop_slug,
+        pv.id AS variant_id,
+        pv.stock_quantity,
+        pv.price AS variant_price,
+        (SELECT url FROM product_images WHERE product_id = p.id AND is_primary = true LIMIT 1) AS product_image_url
+      FROM product_variants pv
+      JOIN products p ON pv.product_id = p.id
+      JOIN shops s ON p.shop_id = s.id
+      WHERE pv.id = ANY($1) AND p.is_active = true
+    `;
+
+    const productsResult = await client.query(productsQuery, [variantIds]);
+    if (productsResult.rows.length === 0) throw new Error('Aucun produit valide trouvé');
+
+    const variantsMap = new Map(productsResult.rows.map(row => [row.variant_id, row]));
+
+    const enrichedItems = [];
+
+    for (const cartItem of items) {
+      const variantData = variantsMap.get(cartItem.variantId);
+      if (!variantData) throw new Error(`Produit non trouvé: ${cartItem.name}`);
+
+      // Vérification stock
+      if (variantData.stock_quantity < cartItem.quantity)
+        throw new Error(`Stock insuffisant pour ${cartItem.name}`);
+
+      const unitPrice = Number(variantData.variant_price);
+      const subtotal = unitPrice * cartItem.quantity;
+
+      enrichedItems.push({
+        product_id: cartItem.productId,
+        variant_id: cartItem.variantId,
+        shop_id: variantData.shop_id,
+        shop_name: variantData.shop_name,
+        shop_slug: variantData.shop_slug,
+        product_name: cartItem.name,
+        product_image_url: cartItem.image || variantData.product_image_url,
+        quantity: cartItem.quantity,
+        unit_price: unitPrice,
+        subtotal,
+        variant_attributes: cartItem.selectedVariants || null
+      });
+    }
+
+    // --- Group items by shop ---
+    const itemsByShop = enrichedItems.reduce((acc, item) => {
+      if (!acc[item.shop_id]) acc[item.shop_id] = [];
+      acc[item.shop_id].push(item);
+      return acc;
+    }, {});
+
+    // --- Calculate global totals ---
+    const globalSubtotal = enrichedItems.reduce((s, i) => s + i.subtotal, 0);
+    const globalShipping = 0; // optional global shipping
+    const globalTax = 0;
+    const globalTotal = globalSubtotal + globalShipping + globalTax;
+
+    // --- Create main order (global) ---
+    const orderNumber = await this.generateOrderNumber();
+
+    const orderResult = await client.query(
+      `
+      INSERT INTO orders (
+        order_number, user_id, subtotal, shipping_cost, tax, total_amount, 
+        shipping_address, payment_method, payment_status, status
+      )
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+      RETURNING *
+      `,
+      [
+        orderNumber,
+        userId || null,
+        globalSubtotal,
+        globalShipping,
+        globalTax,
+        globalTotal,
+        JSON.stringify(shippingAddress),
+        'card',
+        'pending',
+        'pending'
+      ]
+    );
+
+    const mainOrder = orderResult.rows[0];
+
+    const createdShopOrders = [];
+
+    // --- Create shop_orders + order_items ---
+    for (const [shopId, shopItems] of Object.entries(itemsByShop)) {
+      const shopSubtotal = shopItems.reduce((s, i) => s + i.subtotal, 0);
+      const shopShipping = this.calculateShippingCost(shopSubtotal, shopItems.length);
+      const shopTax = 0;
+      const shopTotal = shopSubtotal + shopShipping + shopTax;
+
+      const shopOrderResult = await client.query(
+        `
+        INSERT INTO shop_orders (
+          order_id, shop_id, subtotal, shipping_cost, tax, total_amount, status
+        )
+        VALUES ($1,$2,$3,$4,$5,$6,$7)
+        RETURNING *
+        `,
+        [mainOrder.id, shopId, shopSubtotal, shopShipping, shopTax, shopTotal, 'pending']
+      );
+
+      const shopOrder = shopOrderResult.rows[0];
+
+      // --- Insert order_items for each product ---
+      for (const item of shopItems) {
+        await client.query(
+          `
+          INSERT INTO order_items (
+            shop_order_id, product_id, product_variant_id, quantity,
+            unit_price, subtotal, product_name, product_image_url, variant_attributes
+          )
+          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+          `,
+          [
+            shopOrder.id,
+            item.product_id,
+            item.variant_id,
+            item.quantity,
+            item.unit_price,
+            item.subtotal,
+            item.product_name,
+            item.product_image_url,
+            JSON.stringify(item.variant_attributes)
+          ]
+        );
+
+        // --- Update stock ---
+        const stockUpdate = await client.query(
+          `
+          UPDATE product_variants
+          SET stock_quantity = stock_quantity - $1
+          WHERE id = $2 AND stock_quantity >= $1
+          RETURNING stock_quantity
+          `,
+          [item.quantity, item.variant_id]
+        );
+
+        if (stockUpdate.rows.length === 0)
+          throw new Error(`Impossible de mettre à jour le stock pour ${item.product_name}`);
+      }
+
+      // --- Insert status history ---
+      await client.query(
+        `
+        INSERT INTO order_status_history (shop_order_id, status, comment)
+        VALUES ($1,$2,$3)
+        `,
+        [shopOrder.id, 'pending', 'Commande créée']
+      );
+
+      createdShopOrders.push({
+        ...shopOrder,
+        shop_id: shopId,
+        items: shopItems.map(i => ({
+          product_name: i.product_name,
+          quantity: i.quantity,
+          unit_price: i.unit_price,
+          subtotal: i.subtotal
+        }))
+      });
+    }
+
+    await client.query('COMMIT');
+
+    return {
+      order: mainOrder,
+      shop_orders: createdShopOrders
+    };
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('Erreur création commande:', err);
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
+
+// Récupérer une commande précise (par ID et utilisateur)
+  static async findById(orderId, userId = null) {
     const client = await pool.connect();
 
     try {
-      await client.query('BEGIN');
-
-      const { items, address } = payload;
-
-      // --- Validation de base ---
-      if (!items || items.length === 0) {
-        throw new Error('Le panier est vide');
-      }
-
-      if (!address || !address.firstName || !address.lastName || !address.line) {
-        throw new Error('Adresse de livraison incomplète');
-      }
-
-      // --- Formater l'adresse ---
-      const shippingAddress = {
-        name: `${address.firstName} ${address.lastName}`,
-        street: address.line,
-        city: address.city,
-        postal_code: address.postalCode,
-        country: address.country,
-        phone: address.phone,
-        email: address.email
-      };
-
-      // --- Extraire les variantIds pour récupérer les données ---
-      const variantIds = items.map(item => item.variantId);
-
-      // --- Récupérer les infos des produits et variantes ---
-      const productsQuery = `
+      // 🔍 Get the global order
+      const orderQuery = `
         SELECT 
-          p.id AS product_id,
-          p.name AS product_name,
-          p.shop_id,
-          s.name AS shop_name,
-          s.slug AS shop_slug,
-          pv.id AS variant_id,
-          pv.stock_quantity,
-          pv.price AS variant_price,
-          (SELECT url FROM product_images WHERE product_id = p.id AND is_primary = true LIMIT 1) AS product_image_url
-        FROM product_variants pv
-        JOIN products p ON pv.product_id = p.id
-        JOIN shops s ON p.shop_id = s.id
-        WHERE pv.id = ANY($1) AND p.is_active = true
+          o.id,
+          o.order_number,
+          o.user_id,
+          o.status,
+          o.subtotal,
+          o.tax,
+          o.shipping_cost,
+          o.total_amount,
+          o.shipping_address,
+          o.payment_method,
+          o.payment_status,
+          o.notes,
+          o.created_at
+        FROM orders o
+        WHERE o.id = $1
+        ${userId ? 'AND o.user_id = $2' : ''}
       `;
 
-      const productsResult = await client.query(productsQuery, [variantIds]);
+      const orderValues = userId ? [orderId, userId] : [orderId];
+      const { rows: orderRows } = await client.query(orderQuery, orderValues);
 
-      if (productsResult.rows.length === 0) {
-        throw new Error('Aucun produit valide trouvé');
+      if (orderRows.length === 0) {
+        return null;
       }
 
-      // --- Créer une map pour accès rapide aux variantes ---
-      const variantsMap = new Map(productsResult.rows.map(row => [row.variant_id, row]));
+      const order = orderRows[0];
 
-      const enrichedItems = [];
+      // 🔍 Fetch sub-orders (each shop)
+      const shopOrdersQuery = `
+        SELECT 
+          so.id,
+          so.shop_id,
+          s.name AS shop_name,
+          s.slug AS shop_slug,
+          so.subtotal,
+          so.tax,
+          so.shipping_cost,
+          so.total_amount,
+          so.status,
+          so.created_at
+        FROM shop_orders so
+        JOIN shops s ON s.id = so.shop_id
+        WHERE so.order_id = $1
+        ORDER BY s.name ASC
+      `;
+      const { rows: shopOrders } = await client.query(shopOrdersQuery, [orderId]);
 
-      for (const cartItem of items) {
-        const variantData = variantsMap.get(cartItem.variantId);
+      // 🔍 Fetch all items for all sub-orders
+      const itemsQuery = `
+        SELECT 
+          oi.id,
+          oi.shop_order_id,
+          oi.product_id,
+          oi.product_variant_id,
+          oi.product_name,
+          oi.product_image_url,
+          oi.variant_attributes,
+          oi.quantity,
+          oi.unit_price,
+          oi.subtotal
+        FROM order_items oi
+        JOIN shop_orders so ON so.id = oi.shop_order_id
+        WHERE so.order_id = $1
+        ORDER BY oi.created_at ASC
+      `;
+      const { rows: items } = await client.query(itemsQuery, [orderId]);
 
-        if (!variantData) {
-          throw new Error(`Produit non trouvé: ${cartItem.name}`);
-        }
-
-        // --- Vérifier le stock ---
-        if (variantData.stock_quantity < cartItem.quantity) {
-          throw new Error(
-            `Stock insuffisant pour ${cartItem.name} (disponible: ${variantData.stock_quantity}, demandé: ${cartItem.quantity})`
-          );
-        }
-
-        // --- Vérifier la cohérence du productId ---
-        if (variantData.product_id !== cartItem.productId) {
-          throw new Error(`Incohérence détectée pour ${cartItem.name}`);
-        }
-
-        // --- Calculer le prix et le sous-total ---
-        const unitPrice = Number(variantData.variant_price);
-        const subtotal = unitPrice * cartItem.quantity;
-
-        enrichedItems.push({
-          product_id: cartItem.productId,
-          variant_id: cartItem.variantId,
-          shop_id: variantData.shop_id,
-          shop_name: variantData.shop_name,
-          shop_slug: variantData.shop_slug,
-          product_name: cartItem.name,
-          product_image_url: cartItem.image || variantData.product_image_url,
-          quantity: cartItem.quantity,
-          unit_price: unitPrice,
-          subtotal
-        });
-      }
-
-      // --- Grouper les items par boutique ---
-      const itemsByShop = enrichedItems.reduce((acc, item) => {
-        if (!acc[item.shop_id]) {
-          acc[item.shop_id] = {
-            shop_name: item.shop_name,
-            shop_slug: item.shop_slug,
-            items: []
-          };
-        }
-        acc[item.shop_id].items.push(item);
+      // 🧩 Group items by shop_order_id
+      const itemsByShop = items.reduce((acc, item) => {
+        if (!acc[item.shop_order_id]) acc[item.shop_order_id] = [];
+        acc[item.shop_order_id].push(item);
         return acc;
       }, {});
 
-      const createdOrders = [];
+      // 🧩 Attach items to their corresponding shop orders
+      const shopOrdersWithItems = shopOrders.map((shopOrder) => ({
+        ...shopOrder,
+        items: itemsByShop[shopOrder.id] || [],
+      }));
 
-      // --- Créer une commande par boutique ---
-      for (const [shopId, shopData] of Object.entries(itemsByShop)) {
-        const { items } = shopData;
-
-        // Calculer les totaux
-        const subtotal = items.reduce((sum, item) => sum + item.subtotal, 0);
-        const shippingCost = this.calculateShippingCost(subtotal, items.length);
-        const tax = 0 //subtotal * 0.2; // 20% TVA
-        const totalAmount = subtotal + shippingCost + tax;
-
-        const orderNumber = await this.generateOrderNumber();
-
-        // --- Créer la commande ---
-        const orderQuery = `
-          INSERT INTO orders (
-            order_number, user_id, shop_id, subtotal, shipping_cost, 
-            tax, total_amount, shipping_address, payment_method, payment_status
-          )
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-          RETURNING *
-        `;
-
-        const orderResult = await client.query(orderQuery, [
-          orderNumber,
-          userId || null,
-          shopId,
-          subtotal,
-          shippingCost,
-          tax,
-          totalAmount,
-          JSON.stringify(shippingAddress),
-          'card',
-          'pending'
-        ]);
-
-        const order = orderResult.rows[0];
-
-        // --- Créer les lignes de commande ---
-        for (const item of items) {
-          await client.query(
-            `
-            INSERT INTO order_items (
-              order_id, product_id, product_variant_id, quantity, 
-              unit_price, subtotal, product_name, product_image_url
-            )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-            `,
-            [
-              order.id,
-              item.product_id,
-              item.variant_id,
-              item.quantity,
-              item.unit_price,
-              item.subtotal,
-              item.product_name,
-              item.product_image_url
-            ]
-          );
-
-          // --- Décrémenter le stock ---
-          const stockResult = await client.query(
-            `
-            UPDATE product_variants
-            SET stock_quantity = stock_quantity - $1
-            WHERE id = $2 AND stock_quantity >= $1
-            RETURNING stock_quantity
-            `,
-            [item.quantity, item.variant_id]
-          );
-
-          if (stockResult.rows.length === 0) {
-            throw new Error(`Impossible de mettre à jour le stock pour ${item.product_name}`);
-          }
-        }
-
-        // --- Historique de statut ---
-        await client.query(
-          `
-          INSERT INTO order_status_history (order_id, status, comment)
-          VALUES ($1, $2, $3)
-          `,
-          [order.id, 'pending', 'Commande créée']
-        );
-
-        createdOrders.push({
-          ...order,
-          shop_name: shopData.shop_name,
-          items: items.map(item => ({
-            product_name: item.product_name,
-            quantity: item.quantity,
-            unit_price: item.unit_price,
-            subtotal: item.subtotal
-          }))
-        });
-      }
-
-      await client.query('COMMIT');
-      return createdOrders;
+      // ✅ Final combined result
+      return {
+        ...order,
+        shipping_address: order.shipping_address, // JSONB
+        shop_orders: shopOrdersWithItems,
+      };
     } catch (error) {
-      await client.query('ROLLBACK');
-      console.error('Erreur création commande:', error);
+      console.error('Erreur findById:', error);
       throw error;
     } finally {
       client.release();
     }
   }
 
-// Récupérer une commande précise (par ID et utilisateur)
-static async findById(orderId) {
-
-  const query = `
-    SELECT 
-      o.*,
-      s.name AS shop_name,
-      s.slug AS shop_slug,
-      (
-        SELECT json_agg(
-          json_build_object(
-            'id', oi.id,
-            'product_name', oi.product_name,
-            'product_image_url', oi.product_image_url,
-            'variant_attributes', oi.variant_attributes,
-            'quantity', oi.quantity,
-            'unit_price', oi.unit_price,
-            'subtotal', oi.subtotal
-          )
-        )
-        FROM order_items oi
-        WHERE oi.order_id = o.id
-      ) AS items,
-      (
-        SELECT json_agg(
-          json_build_object(
-            'status', osh.status,
-            'comment', osh.comment,
-            'created_at', osh.created_at
-          )
-          ORDER BY osh.created_at DESC
-        )
-        FROM order_status_history osh
-        WHERE osh.order_id = o.id
-      ) AS status_history
-    FROM orders o
-    JOIN shops s ON o.shop_id = s.id
-    WHERE o.id = $1
-    LIMIT 1;
-  `;
-
-  try {
-    const result = await pool.query(query, [orderId]);
-
-    if (result.rows.length === 0) {
-      console.warn("⚠️ No order found for given orderId and userId");
-      return null;
-    }
-
-    const order = result.rows[0];
-    console.log("✅ Order found:", JSON.stringify(order, null, 2));
-
-    return order;
-  } catch (error) {
-    console.error("❌ Error fetching order:", error);
-    throw error;
-  }
-}
 
 
 

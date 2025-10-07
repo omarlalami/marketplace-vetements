@@ -5,22 +5,25 @@ const Joi = require('joi');
 
 const router = express.Router();
 
-// Schéma de validation
+// ✅ Schema validation
 const createOrderSchema = Joi.object({
-  items: Joi.array().items(
-    Joi.object({
-      id: Joi.string().required(),
-      productId: Joi.string().uuid().required(),
-      variantId: Joi.string().uuid().required(), // ⚡ Ajouté
-      name: Joi.string().required(),
-      price: Joi.number().required(),
-      quantity: Joi.number().integer().min(1).required(),
-      image: Joi.string().allow('', null),
-      shopName: Joi.string().allow('', null),
-      shopSlug: Joi.string().allow('', null),
-      selectedVariants: Joi.object().pattern(Joi.string(), Joi.string()).allow(null)
-    })
-  ).min(1).required(),
+  items: Joi.array()
+    .items(
+      Joi.object({
+        id: Joi.string().required(),
+        productId: Joi.string().uuid().required(),
+        variantId: Joi.string().uuid().required(),
+        name: Joi.string().required(),
+        price: Joi.number().required(),
+        quantity: Joi.number().integer().min(1).required(),
+        image: Joi.string().allow('', null),
+        shopName: Joi.string().allow('', null),
+        shopSlug: Joi.string().allow('', null),
+        selectedVariants: Joi.object().pattern(Joi.string(), Joi.string()).allow(null)
+      })
+    )
+    .min(1)
+    .required(),
   address: Joi.object({
     firstName: Joi.string().required(),
     lastName: Joi.string().required(),
@@ -34,61 +37,55 @@ const createOrderSchema = Joi.object({
   total: Joi.number().required()
 });
 
-// Créer une commande
+// ✅ Create a new order (multi-seller)
 router.post('/', optionalAuth, async (req, res) => {
   try {
-    // Validation
+    // --- Validate request body ---
     const { error } = createOrderSchema.validate(req.body);
     if (error) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         ok: false,
-        message: error.details[0].message 
+        message: error.details[0].message
       });
     }
 
     const payload = req.body;
+    const userId = req.user ? req.user.userId : null;
 
-    // Créer les commandes
-    const orders = await Order.createOrder(req.user ? req.user.userId : null, payload);
+    // --- Create the order ---
+    const { order, shop_orders } = await Order.createOrder(userId, payload);
 
     res.status(201).json({
       ok: true,
-      message: `${orders.length} commande(s) créée(s) avec succès`,
-      orders,
-      // Retourner le premier order id pour la redirection
-      id: orders.length > 0 ? orders[0].id : null
+      message: `Commande créée avec succès`,
+      order,           // global order
+      shop_orders,     // list of sub-orders per seller
+      id: order.id,    // for redirection if needed
+      order_number: order.order_number
     });
 
   } catch (error) {
     console.error('Erreur création commande:', error);
-    
-    // Gestion des erreurs spécifiques
+
+    // --- Specific error messages ---
     if (error.message.includes('Stock insuffisant')) {
-      return res.status(400).json({ 
-        ok: false,
-        message: error.message 
-      });
+      return res.status(400).json({ ok: false, message: error.message });
     }
+
     if (error.message.includes('Produit non trouvé')) {
-      return res.status(404).json({ 
-        ok: false,
-        message: error.message 
-      });
+      return res.status(404).json({ ok: false, message: error.message });
     }
+
     if (error.message.includes('panier est vide') || error.message.includes('Adresse')) {
-      return res.status(400).json({ 
-        ok: false,
-        message: error.message 
-      });
+      return res.status(400).json({ ok: false, message: error.message });
     }
-    
-    res.status(500).json({ 
+
+    res.status(500).json({
       ok: false,
-      message: 'Erreur lors de la création de la commande' 
+      message: 'Erreur lors de la création de la commande'
     });
   }
 });
-
 
 // Récupérer les commandes de l'utilisateur
 router.get('/my-orders', authenticateToken, async (req, res) => {
