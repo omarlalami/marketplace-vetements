@@ -43,6 +43,7 @@ const createProductSchema = Joi.object({
 });
 
 // Créer un produit
+//tester ok 
 router.post('/', authenticateToken, async (req, res) => {
   try {
     const { error } = createProductSchema.validate(req.body);
@@ -242,6 +243,7 @@ router.post('/:productId/images', authenticateToken, upload.array('images', 10),
 });
 
 // Récupérer les produits d'une boutique spécifique (pour le dashboard)
+// tester ok
 router.get('/shop/:shopId/products', authenticateToken, async (req, res) => {
   try {
     const { shopId } = req.params;
@@ -269,6 +271,7 @@ router.get('/shop/:shopId/products', authenticateToken, async (req, res) => {
 });
 
 // Récupérer un produit pour édition (protégé)
+//tester ok
 router.get('/:id/edit', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
@@ -293,6 +296,7 @@ router.get('/:id/edit', authenticateToken, async (req, res) => {
 });
 
 // Route pour mettre à jour un produit
+//tester ok 
 router.put('/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
@@ -350,6 +354,7 @@ router.delete('/:productId/images/:imageId', authenticateToken, async (req, res)
 });
 
 // Route pour supprimer un produit
+//tester ok 
 router.delete('/:id', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;

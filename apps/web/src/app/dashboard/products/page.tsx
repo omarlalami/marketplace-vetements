@@ -93,6 +93,7 @@ export default function ProductsPage() {
           }
         }
         
+        console.log('Tout les produits recu : ', JSON.stringify(allProducts, null, 2))
         setProducts(allProducts)
         setFilteredProducts(allProducts)
       } catch (error: any) {
@@ -107,6 +108,7 @@ export default function ProductsPage() {
   }, [])
 
   // Filtrer les produits
+  // ici on evite d'appeler le backend pour filtrer !
   useEffect(() => {
     let filtered = products
 

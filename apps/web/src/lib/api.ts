@@ -129,23 +129,23 @@ class ApiClient {
   }
 
   // Products
-async createProduct(data: {
-  name: string
-  description?: string
-  shopId: string
-  categoryId?: string
-  price?: number
-  stockQuantity ?: number
-  variants?: Array<{
-    stockQuantity: number
+  async createProduct(data: {
+    name: string
+    description?: string
+    shopId: string
+    categoryId?: string
     price?: number
-    attributeValueIds: string[]
-  }>
-}) {
-    console.log("valeur ici " + JSON.stringify(data))
-  const response = await this.client.post('/products', data)
-  return response.data
-}
+    stockQuantity ?: number
+    variants?: Array<{
+      stockQuantity: number
+      price?: number
+      attributeValueIds: string[]
+    }>
+  }) {
+      console.log("valeur ici " + JSON.stringify(data))
+    const response = await this.client.post('/products', data)
+    return response.data
+  }
 
   async getProduct(id: string) {
     const response = await this.client.get(`/products/${id}`)
@@ -183,6 +183,9 @@ async createProduct(data: {
     return response.data
   }
 
+  //  depuis dashboard\products\page.tsx ProductsPage
+  // Récupérer les produits d'une boutique spécifique (pour le dashboard)
+  // tester ok
   async getShopProducts(shopId: string, params?: {
     search?: string
     category?: string
@@ -193,6 +196,7 @@ async createProduct(data: {
     return response.data
   }
 
+  //tester ok depuis EditProductPage
   async getProductForEdit(id: string) {
     const response = await this.client.get(`/products/${id}/edit`)
     console.log(response.data)
@@ -200,6 +204,7 @@ async createProduct(data: {
   }
 
   // Méthode pour mettre à jour un produit
+  //tester ok depuis EditProductPage
   async updateProduct(
     id: string,
     data: {
@@ -226,6 +231,8 @@ async createProduct(data: {
   }
   
   // Order
+
+  //tester ok depuis Checkoutpage
   async createOrder(payload: {
     items: Array<{
       id: string
@@ -286,11 +293,13 @@ async createProduct(data: {
     return response.data
   }
 
+  //tester ok depuis ConfirmationOrderPage
   async getOrderById(orderId: string) {
     const response = await this.client.get(`/orders/${orderId}`);
     return response.data;
   }
 
+  // Attrbiutes
   // ⚡ Récupérer les attributs (avec leurs valeurs)
   async getAttributes() {
     const response = await this.client.get('/attributes')

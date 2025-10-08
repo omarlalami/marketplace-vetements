@@ -77,9 +77,11 @@ CREATE TABLE attribute_values (
 
 CREATE TABLE product_variants (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  is_active BOOLEAN DEFAULT TRUE,
   product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
   stock_quantity INTEGER DEFAULT 0,
-	price DECIMAL(10,2) DEFAULT 0.00
+	price DECIMAL(10,2) DEFAULT 0.00,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Table pivot qui relie un variant avec ses attributs
@@ -181,6 +183,14 @@ CREATE TABLE order_items (
   
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+ALTER TABLE order_items
+  DROP CONSTRAINT IF EXISTS order_items_product_variant_id_fkey,
+  ADD CONSTRAINT order_items_product_variant_id_fkey
+  FOREIGN KEY (product_variant_id)
+  REFERENCES product_variants(id)
+  ON DELETE RESTRICT;
+
 
 -- Historique des statuts de commande
 CREATE TABLE order_status_history (
