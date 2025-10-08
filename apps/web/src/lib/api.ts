@@ -118,13 +118,10 @@ class ApiClient {
     return response.data
   }
 
-  async getAllShops(params?: {
-    search?: string
-    sortBy?: string
-    limit?: number
-    page?: number
-  }) {
-    const response = await this.client.get('/shops', { params })
+  // Route publique pour lister toutes les boutiques
+  // tester  ... utiliser dans afficher toute les boutiques
+  async getAllShops() {
+    const response = await this.client.get('/shops')
     return response.data
   }
 
@@ -186,12 +183,8 @@ class ApiClient {
   //  depuis dashboard\products\page.tsx ProductsPage
   // Récupérer les produits d'une boutique spécifique (pour le dashboard)
   // tester ok
-  async getShopProducts(shopId: string, params?: {
-    search?: string
-    category?: string
-    page?: number
-  }) {
-    const response = await this.client.get(`/products/shop/${shopId}/products`, { params })
+  async getShopProducts(shopId: string) {
+    const response = await this.client.get(`/products/shop/${shopId}/products`)
     console.log(response.data)
     return response.data
   }

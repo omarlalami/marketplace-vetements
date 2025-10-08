@@ -85,68 +85,66 @@ class Shop {
     return result.rows;
   }
 
-  
-
-static async update(id, { name, description, logoUrl }) {
-  try {
-    // Récupérer la boutique actuelle
-    const existingShopResult = await pool.query(
-      `SELECT id FROM shops WHERE id = $1 AND is_active = true`,
-      [id]
-    );
-    const existingShop = existingShopResult.rows[0];
-
-    if (!existingShop) {
-      const err = new Error("Boutique introuvable ou désactivée.");
-      err.code = "SHOP_NOT_FOUND";
-      throw err;
-    }
-
-    // --- 🔹 Si le nom change ---
-    if (name !== undefined && name !== existingShop.name) {
-      // Vérifier si une autre boutique a déjà ce nom
-      const nameCheck = await pool.query(
-        `SELECT id FROM shops WHERE name = $1`,
-        [name]
+  static async update(id, { name, description, logoUrl }) {
+    try {
+      // Récupérer la boutique actuelle
+      const existingShopResult = await pool.query(
+        `SELECT id FROM shops WHERE id = $1 AND is_active = true`,
+        [id]
       );
+      const existingShop = existingShopResult.rows[0];
 
-      if (nameCheck.rows.length > 0) {
-        const err = new Error("Une boutique avec ce nom existe déjà.");
-        err.code = "SHOP_NAME_EXISTS";
-        throw err;
-      }
-    }
-
-      // Vérifier si une autre boutique a déjà ce nom
-      const nameCheckExist = await pool.query(
-        `SELECT id FROM shops WHERE name = $1`,
-        [name]
-      );
-      if (nameCheckExist.rows.length > 0) {
-        const err = new Error("Une boutique avec ce nom existe déjà.");
-        err.code = "SHOP_NAME_EXISTS";
+      if (!existingShop) {
+        const err = new Error("Boutique introuvable ou désactivée.");
+        err.code = "SHOP_NOT_FOUND";
         throw err;
       }
 
-    // --- 🔹 Exécuter la requête ---
-    const query = `
-      UPDATE shops
-      SET name = $1, description = $2
-      WHERE id = $3 AND is_active = true
-      RETURNING *
-    `;
+      // --- 🔹 Si le nom change ---
+      if (name !== undefined && name !== existingShop.name) {
+        // Vérifier si une autre boutique a déjà ce nom
+        const nameCheck = await pool.query(
+          `SELECT id FROM shops WHERE name = $1`,
+          [name]
+        );
 
-    const result = await pool.query(query, [name, description, id]);
-    return result.rows[0];
+        if (nameCheck.rows.length > 0) {
+          const err = new Error("Une boutique avec ce nom existe déjà.");
+          err.code = "SHOP_NAME_EXISTS";
+          throw err;
+        }
+      }
 
-  } catch (err) {
-    if (["SHOP_NOT_FOUND", "SHOP_NAME_EXISTS", "SHOP_UPDATE_FAILED", "NO_FIELDS"].includes(err.code)) {
-      throw err;
+        // Vérifier si une autre boutique a déjà ce nom
+        const nameCheckExist = await pool.query(
+          `SELECT id FROM shops WHERE name = $1`,
+          [name]
+        );
+        if (nameCheckExist.rows.length > 0) {
+          const err = new Error("Une boutique avec ce nom existe déjà.");
+          err.code = "SHOP_NAME_EXISTS";
+          throw err;
+        }
+
+      // --- 🔹 Exécuter la requête ---
+      const query = `
+        UPDATE shops
+        SET name = $1, description = $2
+        WHERE id = $3 AND is_active = true
+        RETURNING *
+      `;
+
+      const result = await pool.query(query, [name, description, id]);
+      return result.rows[0];
+
+    } catch (err) {
+      if (["SHOP_NOT_FOUND", "SHOP_NAME_EXISTS", "SHOP_UPDATE_FAILED", "NO_FIELDS"].includes(err.code)) {
+        throw err;
+      }
+      console.error("Erreur update boutique:", err);
+      throw new Error("Erreur lors de la mise à jour de la boutique.");
     }
-    console.error("Erreur update boutique:", err);
-    throw new Error("Erreur lors de la mise à jour de la boutique.");
   }
-}
 
   // Soft delete
   static async delete(id) {
@@ -158,6 +156,35 @@ static async update(id, { name, description, logoUrl }) {
     `;
     const result = await pool.query(query, [id]);
     return result.rows[0];
+  }
+
+  // Lister toutes les boutiques
+  // tester ok utiliser dans afficher toute les boutiques
+  // 🔹 Récupérer toutes les boutiques actives avec le nombre de produits actifs
+  static async getAllShops() {
+    const query = `
+      SELECT 
+        s.id,
+        s.name, 
+        s.slug, 
+        s.description, 
+        s.logo_url,
+        s.created_at, 
+        (SELECT COUNT(*) FROM products p WHERE p.shop_id = s.id AND p.is_active = true) AS product_count
+      FROM shops s
+      JOIN users u ON s.owner_id = u.id
+      JOIN user_profiles up ON u.id = up.user_id
+      WHERE s.is_active = true
+      ORDER BY s.created_at DESC
+    `
+
+    try {
+      const { rows } = await pool.query(query)
+      return rows
+    } catch (error) {
+      console.error('Erreur dans getAllShops:', error)
+      throw error
+    }
   }
   
 }
