@@ -24,7 +24,7 @@ interface Product {
   id: string
   name: string
   description: string
-  price: number
+  min_price: number
   shop_name: string
   shop_slug: string
   category_name: string
@@ -56,54 +56,58 @@ export default function ProductsPage() {
     sortBy: searchParams.get('sort') || 'newest'
   })
 
-  // Charger les produits et catégories
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true)
-        const [productsData, categoriesData] = await Promise.all([
-          apiClient.getProducts({
-            search: filters.search || undefined,
-            slug: filters.category || undefined,
-            minPrice: filters.minPrice ? parseFloat(filters.minPrice) : undefined,
-            maxPrice: filters.maxPrice ? parseFloat(filters.maxPrice) : undefined,
-          }),
-          apiClient.getCategories()
-        ])
+// 🔹 Charger les produits et catégories une seule fois ou quand certains filtres changent
+useEffect(() => {
+  const fetchData = async () => {
+    try {
+      setLoading(true)
 
-        console.log('Tout les produits recu : ', JSON.stringify(productsData, null, 2))
-        console.log('Tout les categories : ', JSON.stringify(categoriesData, null, 2))
-        
-        let sortedProducts = [...productsData.products]
-                console.log(sortedProducts)
+      const [productsData, categoriesData] = await Promise.all([
+        apiClient.getProducts({
+          search: filters.search || undefined,
+          slug: filters.category || undefined,
+          minPrice: filters.minPrice ? parseFloat(filters.minPrice) : undefined,
+          maxPrice: filters.maxPrice ? parseFloat(filters.maxPrice) : undefined,
+        }),
+        apiClient.getCategories(),
+      ])
 
-        // Tri
-        switch (filters.sortBy) {
-          case 'price-asc':
-            sortedProducts.sort((a, b) => (a.price || 0) - (b.price || 0))
-            break
-          case 'price-desc':
-            sortedProducts.sort((a, b) => (b.price || 0) - (a.price || 0))
-            break
-          case 'name':
-            sortedProducts.sort((a, b) => a.name.localeCompare(b.name))
-            break
-          case 'newest':
-          default:
-            sortedProducts.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-        }
-        
-        setProducts(sortedProducts)
-        setCategories(categoriesData.categories)
-      } catch (error) {
-        console.error('Erreur chargement produits:', error)
-      } finally {
-        setLoading(false)
-      }
+      setProducts(productsData.products)
+      setCategories(categoriesData.categories)
+    } catch (error) {
+      console.error('Erreur chargement produits:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // ✅ On ne recharge les données que si les filtres changent (sauf sortBy)
+  fetchData()
+}, [filters.search, filters.category, filters.minPrice, filters.maxPrice])
+
+// 🔹 Trier les produits localement
+useEffect(() => {
+  setProducts(prevProducts => {
+    const sorted = [...prevProducts]
+
+    switch (filters.sortBy) {
+      case 'price-asc':
+        sorted.sort((a, b) => (a.min_price || 0) - (b.min_price || 0))
+        break
+      case 'price-desc':
+        sorted.sort((a, b) => (b.min_price || 0) - (a.min_price || 0))
+        break
+      case 'name':
+        sorted.sort((a, b) => a.name.localeCompare(b.name))
+        break
+      case 'newest':
+      default:
+        sorted.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     }
 
-    fetchData()
-  }, [filters])
+    return sorted
+  })
+}, [filters.sortBy])
 
   const handleFilterChange = (key: keyof Filters, value: string) => {
     setFilters(prev => ({ ...prev, [key]: value }))
@@ -400,9 +404,9 @@ export default function ProductsPage() {
                         )}
                         
                         <div className="flex justify-between items-center pt-2">
-                          {product.price ? (
+                          {product.min_price ? (
                             <span className="text-xl font-bold text-green-600">
-                              {formatPrice(product.price)} DZD
+                              A partir de {formatPrice(product.min_price)} DZD
                             </span>
                           ) : (
                             <span className="text-sm text-muted-foreground">Prix sur demande</span>
