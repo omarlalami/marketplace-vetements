@@ -21,7 +21,7 @@ import { useRouter } from 'next/navigation'
 import { ClientLayout } from '@/components/layout/ClientLayout'
 
 export default function HomePage() {
-  const [categories, setCategories] = useState([])
+//  const [categories, setCategories] = useState([])
   const [products, setProducts] = useState([])
 //  const [featuredProducts, setFeaturedProducts] = useState([])
   const [loading, setLoading] = useState(true)
@@ -36,11 +36,10 @@ export default function HomePage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [categoriesData, productsData] = await Promise.all([
-          apiClient.getCategories(),
+        const [ productsData] = await Promise.all([
           apiClient.getProducts({ limit: 6 })
         ])
-        setCategories(categoriesData.categories)
+//        setCategories(categoriesData.categories)
         setProducts(productsData.products)
 //        setFeaturedProducts(productsData.products)
       } catch (error) {

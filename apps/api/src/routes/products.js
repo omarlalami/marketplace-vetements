@@ -82,9 +82,10 @@ router.post('/', authenticateToken, async (req, res) => {
 // Route publique pour les produits (avec filtre boutique)
 router.get('/public', async (req, res) => {
   try {
+    console.log("test")
     const {
       search,
-      category,
+      slug,
       minPrice,
       maxPrice,
       shop, // Nouveau paramètre pour filtrer par slug de boutique
@@ -92,15 +93,33 @@ router.get('/public', async (req, res) => {
       page = 1
     } = req.query;
 
-    const offset = (page - 1) * limit;
+    const pageNumber = parseInt(page) || 1;
+    const limitNumber = parseInt(limit) || 20;
+    const offset = (pageNumber - 1) * limitNumber;
 
     let query = `
-      SELECT p.*, s.name as shop_name, s.slug as shop_slug, 
-             c.name as category_name,
-             (SELECT url FROM product_images WHERE product_id = p.id AND is_primary = true LIMIT 1) as primary_image
+      SELECT 
+        p.id,
+        p.name,
+        p.description,
+        p.created_at,
+        s.name AS shop_name,
+        s.slug AS shop_slug,
+        c.name AS category_name,
+        c.slug AS category_slug,
+        MIN(pv.price) AS min_price,
+        MAX(pv.price) AS max_price,
+        (
+          SELECT url 
+          FROM product_images 
+          WHERE product_id = p.id 
+          AND is_primary = true 
+          LIMIT 1
+        ) AS primary_image
       FROM products p
       LEFT JOIN shops s ON p.shop_id = s.id
       LEFT JOIN categories c ON p.category_id = c.id
+      LEFT JOIN product_variants pv ON pv.product_id = p.id AND pv.is_active = true
       WHERE p.is_active = true AND s.is_active = true
     `;
     
@@ -113,20 +132,30 @@ router.get('/public', async (req, res) => {
       paramIndex++;
     }
     
-    if (category) {
-      query += ` AND p.category_id = $${paramIndex}`;
-      params.push(category);
+    // 🔍 Category or subcategory slug
+    if (slug) {
+      query += ` AND (
+        c.slug = $${paramIndex}
+        OR c.parent_id IN (SELECT id FROM categories WHERE slug = $${paramIndex})
+      )`;
+      params.push(slug);
       paramIndex++;
     }
     
     if (minPrice) {
-      query += ` AND p.price >= $${paramIndex}`;
+      query += ` AND EXISTS (
+        SELECT 1 FROM product_variants pv2 
+        WHERE pv2.product_id = p.id AND pv2.price >= $${paramIndex} AND pv2.is_active = true
+      )`;
       params.push(parseFloat(minPrice));
       paramIndex++;
     }
     
     if (maxPrice) {
-      query += ` AND p.price <= $${paramIndex}`;
+      query += ` AND EXISTS (
+        SELECT 1 FROM product_variants pv3 
+        WHERE pv3.product_id = p.id AND pv3.price <= $${paramIndex} AND pv3.is_active = true
+      )`;
       params.push(parseFloat(maxPrice));
       paramIndex++;
     }
@@ -137,17 +166,23 @@ router.get('/public', async (req, res) => {
       paramIndex++;
     }
     
-    query += ` ORDER BY p.created_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
-    params.push(parseInt(limit), offset);
+    // 👇 Group to aggregate variants
+    query += `
+      GROUP BY p.id, s.name, s.slug, c.name, c.slug
+      ORDER BY p.created_at DESC
+      LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+    `;
+    params.push(limitNumber, offset);
     
     const result = await pool.query(query, params);
     
     res.json({
+      ok: true,
       products: result.rows,
       pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
-        hasMore: result.rows.length === parseInt(limit)
+        page: pageNumber,
+        limit: limitNumber,
+        hasMore: result.rows.length === limitNumber
       }
     });
 

@@ -64,12 +64,15 @@ export default function ProductsPage() {
         const [productsData, categoriesData] = await Promise.all([
           apiClient.getProducts({
             search: filters.search || undefined,
-            category: filters.category || undefined,
+            slug: filters.category || undefined,
             minPrice: filters.minPrice ? parseFloat(filters.minPrice) : undefined,
             maxPrice: filters.maxPrice ? parseFloat(filters.maxPrice) : undefined,
           }),
           apiClient.getCategories()
         ])
+
+        console.log('Tout les produits recu : ', JSON.stringify(productsData, null, 2))
+        console.log('Tout les categories : ', JSON.stringify(categoriesData, null, 2))
         
         let sortedProducts = [...productsData.products]
                 console.log(sortedProducts)
@@ -206,7 +209,7 @@ export default function ProductsPage() {
                       </SelectTrigger>
                       <SelectContent>
                         {flatCategories.map((category: any) => (
-                          <SelectItem key={category.id} value={category.id}>
+                          <SelectItem key={category.slug} value={category.slug}>
                             {category.name}
                           </SelectItem>
                         ))}

@@ -74,7 +74,7 @@ class ApiClient {
 
   async getCategories() {
     const response = await this.client.get('/categories')
-    console.log(response.data)
+    //console.log(response.data)
     return response.data
   }
 
@@ -150,17 +150,23 @@ class ApiClient {
   }
 
   // Méthode mise à jour pour getProducts avec plus d'options
+  // utiliser dans page d'acceuil, page de produits par boutique, page de produits
   async getProducts(params?: { 
     search?: string
-    category?: string
+    slug?: string
     minPrice?: number
     maxPrice?: number
     shop?: string
     limit?: number
     page?: number
   }) {
-    const response = await this.client.get('/products/public', { params })
-    return response.data
+    try {
+      const response = await this.client.get('/products/public', { params })
+      return response.data
+    } catch (error: any) {
+      console.error('❌ Erreur API getProducts:', error.response?.data || error.message)
+      return { ok: false, message: 'Erreur lors du chargement des produits.' }
+    }
   }
 
   async uploadProductImages(productId: string, files: File[]) {
@@ -296,7 +302,7 @@ class ApiClient {
   // ⚡ Récupérer les attributs (avec leurs valeurs)
   async getAttributes() {
     const response = await this.client.get('/attributes')
-    console.log(response.data)
+  //  console.log(response.data)
     return response.data
   }
 
