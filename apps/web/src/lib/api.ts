@@ -139,7 +139,8 @@ class ApiClient {
       attributeValueIds: string[]
     }>
   }) {
-      console.log("valeur ici " + JSON.stringify(data))
+    console.log("create product donne envoyer de l api", JSON.stringify(data, null, 2))
+
     const response = await this.client.post('/products', data)
     return response.data
   }
@@ -210,11 +211,10 @@ class ApiClient {
       name: string
       description?: string
       categoryId?: string
-      variants?: VariantInput[] // Utilisez VariantInput au lieu de Variant
+      variants?: VariantInput[] 
     }
   ) {
-          console.log("donne envoyer de l'api")
-        console.log(data)
+    console.log("update product donne envoyer de l api", JSON.stringify(data, null, 2))
     const response = await this.client.put(`/products/${id}`, data)
     return response.data
   }

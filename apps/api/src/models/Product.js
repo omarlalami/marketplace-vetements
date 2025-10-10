@@ -243,7 +243,7 @@ class Product {
       }
 
       // 🔹 2. Mettre à jour le produit principal
-      const { name, description, category_id} = data;
+      const { name, description, categoryId} = data;
 
       await client.query(
         `
@@ -251,7 +251,7 @@ class Product {
         SET name = $1, description = $2, category_id = $3, updated_at = NOW()
         WHERE id = $4
         `,
-        [name, description, category_id, id]
+        [name, description, categoryId, id]
       );
 
       // 🔹 3. Gérer les variantes
