@@ -199,7 +199,7 @@ export default function CreateProductPage() {
                   </div>
 
                   <div>
-                    <Label>Catégorie</Label>
+                    <Label>Catégorie *</Label>
                     <Select
                       value={formData.categoryId}
                       onValueChange={(v) => handleInputChange('categoryId', v)}
@@ -352,7 +352,7 @@ export default function CreateProductPage() {
               <CardContent className="pt-6">
                 <Button
                   type="submit"
-                  disabled={loading || !formData.name || !formData.shopId || !formData.price || !formData.stockQuantity}
+                  disabled={loading || !formData.name || !formData.shopId || !formData.price || !formData.stockQuantity || !formData.categoryId}
                   className="w-full"
                 >
                   {loading ? 'Création...' : 'Créer le produit'}

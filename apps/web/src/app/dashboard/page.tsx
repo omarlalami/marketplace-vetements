@@ -49,7 +49,7 @@ export default function DashboardPage() {
     },
   ]
 
-  const stats = [
+/*   const stats = [
     {
       title: 'Mes boutiques',
       value: shops.length.toString(),
@@ -57,17 +57,25 @@ export default function DashboardPage() {
       icon: Store,
     },
     {
-      title: 'Produits',
+      title: 'Mes Produits',
       value: '0',
       description: 'Produits en ligne',
       icon: Package,
     },
     {
-      title: 'Vues',
+      title: 'Mes Commandes',
       value: '0',
-      description: 'Vues ce mois',
+      description: 'Commandes recue',
       icon: TrendingUp,
     },
+  ] */
+   const stats = [
+    {
+      title: 'Mes boutiques',
+      value: shops.length.toString(),
+      description: 'Boutiques actives',
+      icon: Store,
+    }
   ]
 
   return (
