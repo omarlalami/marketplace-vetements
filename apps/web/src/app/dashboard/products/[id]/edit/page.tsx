@@ -244,6 +244,7 @@ console.log("fin log des donnees recu")
         categoryId: formData.categoryId || undefined,
         price: formData.price ? parseFloat(formData.price) : undefined,
         variants: variants.map(v => ({
+          id: v.id, // ✅ Envoie aussi l’ID de la variante
           stockQuantity: v.stock_quantity,
           price: v.price,
           attributes: v.attributes.map(attr => attr.value_id)
