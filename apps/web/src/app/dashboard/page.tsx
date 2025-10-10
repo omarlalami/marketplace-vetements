@@ -173,7 +173,7 @@ export default function DashboardPage() {
                       </p>
                     </div>
                     <Button variant="outline" size="sm" asChild>
-                      <Link href={`/dashboard/shops/${shop.id}`}>
+                      <Link href={`/dashboard/shops/${shop.id}/edit`}>
                         Gérer
                       </Link>
                     </Button>

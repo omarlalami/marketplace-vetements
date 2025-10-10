@@ -154,9 +154,6 @@ export function ClientNavbar() {
               <Button variant="outline" asChild>
                 <Link href="/login">Se connecter</Link>
               </Button>
-              <Button asChild>
-                <Link href="/register">S'inscrire</Link>
-              </Button>
             </div>
           )}
         </div>

@@ -206,12 +206,15 @@ export default function ProductsPage() {
                 Gérer boutiques
               </Link>
             </Button>
-            <Button asChild>
-              <Link href="/dashboard/products/create">
-                <Plus className="mr-2 h-4 w-4" />
-                Ajouter un produit
-              </Link>
-            </Button>
+            {/* ✅ Afficher "Ajouter un produit" uniquement si au moins une boutique existe */}
+            {shops.length > 0 && (
+              <Button asChild>
+                <Link href="/dashboard/products/create">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Ajouter un produit
+                </Link>
+              </Button>
+            )}
           </div>
         </div>
 
@@ -264,22 +267,41 @@ export default function ProductsPage() {
             <CardContent className="pt-6">
               <div className="text-center py-12">
                 <Package className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                <h3 className="text-lg font-semibold mb-2">
-                  {searchTerm || selectedShop !== 'all' ? 'Aucun produit trouvé' : 'Aucun produit'}
-                </h3>
-                <p className="text-muted-foreground mb-6">
-                  {searchTerm || selectedShop !== 'all' 
-                    ? 'Essayez de modifier vos critères de recherche' 
-                    : 'Commencez par créer votre premier produit'
-                  }
-                </p>
-                {!searchTerm && selectedShop === 'all' && (
-                  <Button asChild>
-                    <Link href="/dashboard/products/create">
-                      <Plus className="mr-2 h-4 w-4" />
-                      Créer mon premier produit
-                    </Link>
-                  </Button>
+
+                {/* ✅ Si aucune boutique n'existe */}
+                {shops.length === 0 ? (
+                  <>
+                    <h3 className="text-lg font-semibold mb-2">Aucune boutique trouvée</h3>
+                    <p className="text-muted-foreground mb-6">
+                      Vous devez d’abord créer une boutique avant de pouvoir ajouter des produits.
+                    </p>
+                    <Button asChild>
+                      <Link href="/dashboard/shops">
+                        <Plus className="mr-2 h-4 w-4" />
+                        Créer ma première boutique
+                      </Link>
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    {/* 🟢 Cas classique : aucune boutique vide */}
+                    <h3 className="text-lg font-semibold mb-2">
+                      {searchTerm || selectedShop !== 'all' ? 'Aucun produit trouvé' : 'Aucun produit'}
+                    </h3>
+                    <p className="text-muted-foreground mb-6">
+                      {searchTerm || selectedShop !== 'all'
+                        ? 'Essayez de modifier vos critères de recherche'
+                        : 'Commencez par créer votre premier produit'}
+                    </p>
+                    {!searchTerm && selectedShop === 'all' && (
+                      <Button asChild>
+                        <Link href="/dashboard/products/create">
+                          <Plus className="mr-2 h-4 w-4" />
+                          Créer mon premier produit
+                        </Link>
+                      </Button>
+                    )}
+                  </>
                 )}
               </div>
             </CardContent>
