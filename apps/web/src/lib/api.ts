@@ -190,11 +190,12 @@ class ApiClient {
   //  depuis dashboard\products\page.tsx ProductsPage
   // Récupérer les produits d'une boutique spécifique (pour le dashboard)
   // tester ok
-  async getShopProducts(shopId: string) {
+  //a suprimer car ca se repete avec getProducts quiu propose deja de filtrer avec shop_slug
+/*   async getShopProducts(shopId: string) {
     const response = await this.client.get(`/products/shop/${shopId}/products`)
     console.log(response.data)
     return response.data
-  }
+  } */
 
   //tester ok depuis EditProductPage
   async getProductForEdit(id: string) {

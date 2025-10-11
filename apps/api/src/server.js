@@ -66,9 +66,9 @@ const PORT = process.env.PORT;
 initializeBuckets()
   .then(() => {
     app.listen(PORT, () => {
-      console.log(`🚀 API Marketplace démarrée sur le port ${PORT}`);
-      console.log(`📍 Health check: http://localhost:${PORT}/health`);
-      console.log(`📍 Documentation des routes:`);
+      //console.log(`🚀 API Marketplace démarrée sur le port ${PORT}`);
+      //console.log(`📍 Health check: http://localhost:${PORT}/health`);
+     /*  console.log(`📍 Documentation des routes:`);
       console.log(`   • POST /auth/register - Inscription`);
       console.log(`   • POST /auth/login - Connexion`);
       console.log(`   • GET /auth/profile - Profil utilisateur`);
@@ -76,7 +76,7 @@ initializeBuckets()
       console.log(`   • GET /shops/my-shops - Mes boutiques`);
       console.log(`   • POST /products - Créer un produit`);
       console.log(`   • GET /products - Rechercher des produits`);
-      console.log(`   • GET /categories - Toutes les catégories`);
+      console.log(`   • GET /categories - Toutes les catégories`); */
     });
   })
   .catch(error => {

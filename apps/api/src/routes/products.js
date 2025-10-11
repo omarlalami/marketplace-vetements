@@ -103,7 +103,7 @@ router.get('/public', async (req, res) => {
         }
       })
     );
-    console.log('🟢 produits envoyer : ', JSON.stringify(productsWithImages, null, 2))
+    //console.log('🟢 produits envoyer : ', JSON.stringify(productsWithImages, null, 2))
     res.json({
       ok: true,
       products: productsWithImages,
@@ -220,7 +220,8 @@ router.post('/:productId/images', authenticateToken, upload.array('images', 10),
 
 // Récupérer les produits d'une boutique spécifique (pour le dashboard)
 // tester ok
-router.get('/shop/:shopId/products', authenticateToken, async (req, res) => {
+//a suprimer car ca se repete avec getProducts quiu propose deja de filtrer avec shop_slug
+/* router.get('/shop/:shopId/products', authenticateToken, async (req, res) => {
   try {
     const { shopId } = req.params;
     
@@ -244,7 +245,7 @@ router.get('/shop/:shopId/products', authenticateToken, async (req, res) => {
     console.error('Erreur récupération produits boutique:', error);
     res.status(500).json({ error: 'Erreur lors de la récupération des produits' });
   }
-});
+}); */
 
 // Récupérer un produit pour édition (protégé)
 //tester ok

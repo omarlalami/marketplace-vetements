@@ -34,7 +34,7 @@ export default function CategoryPage() {
       setLoading(true)
       try {
         const response = await apiClient.getProducts({ slug })
-        console.log('🟢 produits recu : ', JSON.stringify(response, null, 2))
+        //console.log('🟢 produits recu : ', JSON.stringify(response, null, 2))
 
         const data =
           response?.data?.products ||
