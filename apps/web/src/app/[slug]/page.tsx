@@ -132,7 +132,7 @@ export default function CategoryPage() {
                   <CardHeader className="p-0">
                     <div className="relative w-full h-48">
                       <Image
-                        src={product.image_url || '/placeholder.png'}
+                        src={product.primary_image?.url || '/placeholder.png'}
                         alt={product.name}
                         fill
                         className="object-cover group-hover:scale-105 transition-transform duration-300"

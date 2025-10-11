@@ -17,21 +17,11 @@ import {
   ShoppingBag
 } from 'lucide-react'
 import Image from 'next/image'
-import { useRouter } from 'next/navigation'
 import { ClientLayout } from '@/components/layout/ClientLayout'
 
 export default function HomePage() {
-//  const [categories, setCategories] = useState([])
   const [products, setProducts] = useState([])
-//  const [featuredProducts, setFeaturedProducts] = useState([])
   const [loading, setLoading] = useState(true)
-  const router = useRouter()
-
-  const { user, logout } = useAuthStore()
-  const handleLogout = () => {
-    logout()
-    router.push('/')
-  }
 
   useEffect(() => {
     const fetchData = async () => {
@@ -120,7 +110,7 @@ export default function HomePage() {
               </div>
 
               {/* Barre de recherche */}
-              <div className="max-w-md mx-auto">
+{/*               <div className="max-w-md mx-auto">
                 <div className="relative">
                   <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
                   <input
@@ -135,7 +125,7 @@ export default function HomePage() {
                     }}
                   />
                 </div>
-              </div>
+              </div> */}
             </div>
           </div>
         </section>
@@ -186,9 +176,9 @@ export default function HomePage() {
                   <Card key={product.id} className="group hover:shadow-xl transition-all duration-300 overflow-hidden">
                     <Link href={`/products/${product.id}`}>
                       <div className="aspect-square bg-gray-100 relative overflow-hidden">
-                        {product.primary_image ? (
+                        {product.primary_image?.url ? (
                           <Image
-                            src={product.primary_image}
+                            src={product.primary_image.url}
                             alt={product.name}
                             fill
                             className="object-cover group-hover:scale-110 transition-transform duration-500"

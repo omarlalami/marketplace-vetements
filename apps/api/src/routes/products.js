@@ -80,112 +80,35 @@ router.post('/', authenticateToken, async (req, res) => {
 });
 
 // Route publique pour les produits (avec filtre boutique)
+// tester ... utiliser dans shops/puma homme products et page acceuilr
 router.get('/public', async (req, res) => {
   try {
-    console.log("test")
-    const {
-      search,
-      slug,
-      minPrice,
-      maxPrice,
-      shop, // Nouveau paramètre pour filtrer par slug de boutique
-      limit = 20,
-      page = 1
-    } = req.query;
+    const result = await Product.searchPublicProducts(req.query);
 
-    const pageNumber = parseInt(page) || 1;
-    const limitNumber = parseInt(limit) || 20;
-    const offset = (pageNumber - 1) * limitNumber;
-
-    let query = `
-      SELECT 
-        p.id,
-        p.name,
-        p.description,
-        p.created_at,
-        s.name AS shop_name,
-        s.slug AS shop_slug,
-        c.name AS category_name,
-        c.slug AS category_slug,
-        MIN(pv.price) AS min_price,
-        MAX(pv.price) AS max_price,
-        (
-          SELECT url 
-          FROM product_images 
-          WHERE product_id = p.id 
-          AND is_primary = true 
-          LIMIT 1
-        ) AS primary_image
-      FROM products p
-      LEFT JOIN shops s ON p.shop_id = s.id
-      LEFT JOIN categories c ON p.category_id = c.id
-      LEFT JOIN product_variants pv ON pv.product_id = p.id AND pv.is_active = true
-      WHERE p.is_active = true AND s.is_active = true
-    `;
-    
-    const params = [];
-    let paramIndex = 1;
-    
-    if (search) {
-      query += ` AND (p.name ILIKE $${paramIndex} OR p.description ILIKE $${paramIndex} OR s.name ILIKE $${paramIndex})`;
-      params.push(`%${search}%`);
-      paramIndex++;
-    }
-    
-    // 🔍 Category or subcategory slug
-    if (slug) {
-      query += ` AND (
-        c.slug = $${paramIndex}
-        OR c.parent_id IN (SELECT id FROM categories WHERE slug = $${paramIndex})
-      )`;
-      params.push(slug);
-      paramIndex++;
-    }
-    
-    if (minPrice) {
-      query += ` AND EXISTS (
-        SELECT 1 FROM product_variants pv2 
-        WHERE pv2.product_id = p.id AND pv2.price >= $${paramIndex} AND pv2.is_active = true
-      )`;
-      params.push(parseFloat(minPrice));
-      paramIndex++;
-    }
-    
-    if (maxPrice) {
-      query += ` AND EXISTS (
-        SELECT 1 FROM product_variants pv3 
-        WHERE pv3.product_id = p.id AND pv3.price <= $${paramIndex} AND pv3.is_active = true
-      )`;
-      params.push(parseFloat(maxPrice));
-      paramIndex++;
-    }
-    
-    if (shop) {
-      query += ` AND s.slug = $${paramIndex}`;
-      params.push(shop);
-      paramIndex++;
-    }
-    
-    // 👇 Group to aggregate variants
-    query += `
-      GROUP BY p.id, s.name, s.slug, c.name, c.slug
-      ORDER BY p.created_at DESC
-      LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
-    `;
-    params.push(limitNumber, offset);
-    
-    const result = await pool.query(query, params);
-    
+    // ✅ Enrich each product with its primary image
+    const productsWithImages = await Promise.all(
+      result.products.map(async (product) => {
+        try {
+          const image = await ImageService.getPrimaryImage(product.id);
+          return {
+            ...product,
+            primary_image: image || null, // fallback if no image
+          };
+        } catch (err) {
+          console.error(`Erreur chargement image produit ${product.id}:`, err);
+          return {
+            ...product,
+            primary_image: null,
+          };
+        }
+      })
+    );
+    console.log('🟢 produits envoyer : ', JSON.stringify(productsWithImages, null, 2))
     res.json({
       ok: true,
-      products: result.rows,
-      pagination: {
-        page: pageNumber,
-        limit: limitNumber,
-        hasMore: result.rows.length === limitNumber
-      }
+      products: productsWithImages,
+      pagination: result.pagination,
     });
-
   } catch (error) {
     console.error('Erreur recherche produits publics:', error);
     res.status(500).json({ error: 'Erreur lors de la recherche de produits' });
@@ -201,7 +124,14 @@ router.get('/:id', optionalAuth, async (req, res) => {
       return res.status(404).json({ error: 'Produit non trouvé' });
     }
 
+    // 2️⃣ Récupération des images liées
+    product.images= await ImageService.getProductImages(req.params.id);
+
     res.json({ product });
+   /*  const images = await ImageService.getProductImages(req.params.id);
+
+    console.log('info Produit envoyer ', JSON.stringify({ ...product, images }, null, 2))
+    res.json({ ...product, images }); */
   } catch (error) {
     console.error('Erreur récupération produit:', error);
     res.status(500).json({ error: 'Erreur lors de la récupération du produit' });
@@ -209,7 +139,8 @@ router.get('/:id', optionalAuth, async (req, res) => {
 });
 
 // Rechercher des produits (public)
-router.get('/', async (req, res) => {
+//not used, to be delete
+/* router.get('/', async (req, res) => {
   try {
     const {
       search,
@@ -238,9 +169,11 @@ router.get('/', async (req, res) => {
     console.error('Erreur recherche produits:', error);
     res.status(500).json({ error: 'Erreur lors de la recherche de produits' });
   }
-});
+}); */
 
 // Upload d'images pour un produit
+//tester ok
+//a modifier pour adapter multer
 router.post('/:productId/images', authenticateToken, upload.array('images', 10), async (req, res) => {
   try {
     const { productId } = req.params;
@@ -258,17 +191,25 @@ router.post('/:productId/images', authenticateToken, upload.array('images', 10),
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({ error: 'Aucune image fournie' });
     }
-
-    const uploadedImages = [];
     
     for (const file of req.files) {
-      const image = await ImageService.uploadProductImage(file, productId);
-      uploadedImages.push(image);
+      const object_name = await ImageService.uploadProductImage(file,productId);
+
+      const query = `
+        INSERT INTO product_images (product_id, object_name)
+        VALUES ($1, $2)
+        RETURNING *
+      `;
+      
+      await pool.query(query, [
+        productId,
+        object_name
+      ]);
+
     }
 
     res.json({
       message: 'Images uploadées avec succès',
-      images: uploadedImages
     });
 
   } catch (error) {
@@ -307,6 +248,7 @@ router.get('/shop/:shopId/products', authenticateToken, async (req, res) => {
 
 // Récupérer un produit pour édition (protégé)
 //tester ok
+//est ce vraiment utile cette route ?
 router.get('/:id/edit', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
@@ -362,6 +304,7 @@ router.put('/:id', authenticateToken, async (req, res) => {
 });
 
 // Route pour supprimer une image
+//route a supprimer ?
 router.delete('/:productId/images/:imageId', authenticateToken, async (req, res) => {
   try {
     const { productId, imageId } = req.params;

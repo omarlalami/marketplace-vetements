@@ -23,7 +23,7 @@ export function ClientNavbar() {
     async function fetchCategories() {
       try {
         const response = await apiClient.getCategories()
-        console.log('Tout les categories recu : ', JSON.stringify(response, null, 2))
+        //console.log('Tout les categories recu : ', JSON.stringify(response, null, 2))
 
         // ✅ Gère plusieurs formats de réponse possibles
         if (response?.data?.categories) {
@@ -43,7 +43,7 @@ export function ClientNavbar() {
     fetchCategories()
   }, [])
 
-  console.log('categories dans variable : ', JSON.stringify(categories, null, 2))
+  //console.log('categories dans variable : ', JSON.stringify(categories, null, 2))
 
 
   // 🔹 Gérer le panier

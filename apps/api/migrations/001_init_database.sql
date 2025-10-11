@@ -91,15 +91,11 @@ CREATE TABLE product_variant_attributes  (
     UNIQUE(product_variant_id, attribute_value_id)
 );
 
-
-
-
 -- Images des produits
 CREATE TABLE product_images (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
-  url TEXT NOT NULL,
-  alt_text VARCHAR(255),
+  object_name VARCHAR(255) NOT NULL,               -- MinIO object key (filename or path)
   display_order INTEGER DEFAULT 0,
   is_primary BOOLEAN DEFAULT FALSE
 );

@@ -52,13 +52,12 @@ interface Product {
   shop_name: string
   shop_slug: string
   category_name: string
-  primary_image: string
+  primary_image?: {
+    url: string
+    key: string
+  } | null
   created_at: string
   variants?: Variant[]
-  images?: Array<{
-    url: string
-    is_primary: boolean
-  }>
 }
 
 export default function ProductsPage() {
@@ -312,9 +311,9 @@ export default function ProductsPage() {
               <Card key={product.id} className="group hover:shadow-md transition-shadow overflow-hidden">
                 {/* Image du produit */}
                 <div className="aspect-square bg-gray-100 relative overflow-hidden">
-                  {product.primary_image ? (
+                  {product.primary_image?.url ? (
                     <Image
-                      src={product.primary_image}
+                      src={product.primary_image.url}
                       alt={product.name}
                       fill
                       className="object-cover group-hover:scale-105 transition-transform duration-300"
