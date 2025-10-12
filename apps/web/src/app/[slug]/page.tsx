@@ -85,6 +85,20 @@ export default function CategoryPage() {
     setFilteredProducts(result)
   }, [filters, products])
 
+  const formatPrice = (price: number | string): string => {
+    const num = typeof price === 'string' ? parseFloat(price) : price;
+    
+    if (isNaN(num)) return '0';
+    
+    // Si c'est un nombre entier, pas de décimales
+    if (num === Math.floor(num)) {
+      return num.toString();
+    }
+    
+    // Sinon, afficher avec 2 décimales
+    return num.toFixed(2);
+  }
+
   // 🔄 Callback reçu du composant SidebarResearch
   const handleFilterChange = (newFilters: {
     minPrice?: number
@@ -148,7 +162,7 @@ export default function CategoryPage() {
                     </p>
                     {product.min_price && (
                       <p className="mt-2 text-primary font-bold">
-                        À partir de {product.min_price} DZD
+                        À partir de {formatPrice(product.min_price)} DZD
                       </p>
                     )}
                   </CardContent>
