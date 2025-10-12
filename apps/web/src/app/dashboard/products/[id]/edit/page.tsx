@@ -56,7 +56,6 @@ export default function EditProductPage() {
     name: '',
     description: '',
     categoryId: '',
-    price: '',
   })
   
   const [variants, setVariants] = useState<Variant[]>([])
@@ -74,16 +73,13 @@ export default function EditProductPage() {
       try {
         setLoading(true)
         const [productData, categoriesData, attributesData] = await Promise.all([
-          apiClient.getProductForEdit(productId),
+          apiClient.getProduct(productId),
           apiClient.getCategories(),
           apiClient.getAttributes()
         ])
 
-console.log("debut log des donnees recu")
-console.log(productData)
-console.log(categoriesData)
-console.log(attributesData)
-console.log("fin log des donnees recu")
+        //console.log("produit get for edit", JSON.stringify( await apiClient.getProductForEdit(productId), null, 2))
+        //console.log("produit get classic", JSON.stringify( await apiClient.getProduct(productId), null, 2))
 
         const product = productData.product
         
@@ -91,7 +87,6 @@ console.log("fin log des donnees recu")
           name: product.name || '',
           description: product.description || '',
           categoryId: product.category_id || '',
-          price: product.price ? product.price.toString() : '',
         })
 
         // Convertir les variantes au bon format
@@ -109,7 +104,13 @@ console.log("fin log des donnees recu")
         setVariants(formattedVariants)
 
         // Images existantes
-        setExistingImages(product.images || [])
+        // ✅ Use images from getProduct
+        const formattedImages = (product.images || []).map((img: any, index: number) => ({
+          id: img.key,
+          url: img.url,
+          is_primary: index === 0 // mark the first image as primary if needed
+        }))
+        setExistingImages(formattedImages)
         setCategories(categoriesData.categories)
         setAttributes(attributesData.attributes)
         
@@ -220,12 +221,13 @@ console.log("fin log des donnees recu")
     }))
   }
 
-  const handleDeleteExistingImage = async (imageId: string) => {
+  const handleDeleteExistingImage = async (imageKey: string) => {
     if (!confirm('Êtes-vous sûr de vouloir supprimer cette image ?')) return
 
     try {
-      await apiClient.deleteProductImage(productId, imageId)
-      setExistingImages(prev => prev.filter(img => img.id !== imageId))
+      //console.log("debug handledeleteexistingimage " + productId + "    " + imageKey)
+      await apiClient.deleteProductImage(productId, imageKey)
+      setExistingImages(prev => prev.filter(img => img.id !== imageKey))
     } catch (error) {
       console.error('Erreur suppression image:', error)
     }
@@ -242,7 +244,6 @@ console.log("fin log des donnees recu")
         name: formData.name,
         description: formData.description,
         categoryId: formData.categoryId || undefined,
-        price: formData.price ? parseFloat(formData.price) : undefined,
         variants: variants.map(v => ({
           id: v.id, // ✅ Envoie aussi l’ID de la variante
           stockQuantity: v.stock_quantity,
@@ -250,8 +251,8 @@ console.log("fin log des donnees recu")
           attributes: v.attributes.map(attr => attr.value_id)
         }))
       }
-      console.log("donne envoyer du formulaire")
-      console.log(productData)
+      //console.log("donne envoyer du formulaire")
+      //console.log(productData)
       await apiClient.updateProduct(productId, productData)
 
       // Upload des nouvelles images si présentes
@@ -620,7 +621,7 @@ console.log("fin log des donnees recu")
               <CardContent>
                 <ImageUpload
                   onImagesChange={setNewImages}
-                  maxFiles={10}
+                  maxFiles={3}
                   maxSizePerFile={5}
                 />
               </CardContent>

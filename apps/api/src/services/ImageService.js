@@ -21,8 +21,12 @@ class ImageService {
   }
 
   // ✅ Supprime une image produit de MinIO
+  //test ok
   static async deleteProductImage(imageKey) {
     try {
+
+      // rajouter suppresion de db
+      await pool.query('DELETE FROM product_images WHERE object_name = $1', [imageKey]);
 
       // Suppression de MinIO
       await minioClient.removeObject('products', imageKey);
@@ -89,6 +93,7 @@ class ImageService {
   }
 
   // ✅ Récupère l'image principale d'un produit
+  //test ok
   static async getPrimaryImage(productId) {
   try {
     // 1️⃣ Get primary image

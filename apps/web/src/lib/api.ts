@@ -220,8 +220,10 @@ class ApiClient {
     return response.data
   }
 
-  async deleteProductImage(productId: string, imageId: string) {
-    const response = await this.client.delete(`/products/${productId}/images/${imageId}`)
+  // tester ok
+  async deleteProductImage(productId: string, imageKey: string) {
+    //console.log("donne a envoyer depuis api client delete imge product" + productId + "     " + encodeURIComponent(imageKey));
+    const response = await this.client.delete(`/products/${productId}/images/${encodeURIComponent(imageKey)}`)
     return response.data
   }
 

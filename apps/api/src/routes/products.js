@@ -305,11 +305,17 @@ router.put('/:id', authenticateToken, async (req, res) => {
 });
 
 // Route pour supprimer une image
-//route a supprimer ?
-router.delete('/:productId/images/:imageId', authenticateToken, async (req, res) => {
+// test ok
+router.delete('/:productId/images/:imageKey', authenticateToken, async (req, res) => {
   try {
-    const { productId, imageId } = req.params;
+
+    //imageKey contains a / so we need to encrypt/decrypt to pass to through api call
+    const { productId } = req.params;
+    const imageKey = decodeURIComponent(req.params.imageKey);
     
+
+    //console.log("donne recu delete imge route product" + productId + "     " + imageKey);
+
     // Vérifier les droits
     const product = await Product.findById(productId);
     if (!product) {
@@ -322,7 +328,7 @@ router.delete('/:productId/images/:imageId', authenticateToken, async (req, res)
     }
 
     // Supprimer l'image de la base et de MinIO
-    await ImageService.deleteProductImage(imageId);
+    await ImageService.deleteProductImage(imageKey);
     
     res.json({ message: 'Image supprimée avec succès' });
 

@@ -30,7 +30,7 @@ app.use('/categories', categoryRoutes);
 app.use('/attributes', attributesRoutes);
 app.use('/orders', ordersRoutes);
 
-/* app.use((req, res, next) => {
+/*  app.use((req, res, next) => {
   console.log("🔎 New request:")
   console.log("Method:", req.method)
   console.log("URL:", req.originalUrl)
@@ -38,7 +38,10 @@ app.use('/orders', ordersRoutes);
   console.log("Cookies:", req.cookies)
   console.log("Body:", req.body)
   next()
-}) */
+})  */
+ app.use((req, res, next) => {
+  next()
+}) 
 
 // Route de test
 app.get('/health', (req, res) => {
