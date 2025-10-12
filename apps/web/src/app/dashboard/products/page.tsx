@@ -52,13 +52,12 @@ interface Product {
   shop_name: string
   shop_slug: string
   category_name: string
-  primary_image: string
+  primary_image?: {
+    url: string
+    key: string
+  } | null
   created_at: string
   variants?: Variant[]
-  images?: Array<{
-    url: string
-    is_primary: boolean
-  }>
 }
 
 export default function ProductsPage() {
@@ -82,18 +81,21 @@ export default function ProductsPage() {
         
         setShops(shopsData.shops)
 
+
+
         // Charger les produits de toutes les boutiques
         const allProducts = []
         for (const shop of shopsData.shops) {
           try {
-            const shopProducts = await apiClient.getShopProducts(shop.id)
+            //console.log('shop info : ', JSON.stringify(shop, null, 2))
+            const shopProducts = await apiClient.getProducts({shop: shop.slug})
             allProducts.push(...shopProducts.products)
           } catch (err) {
             console.log(`Pas de produits pour ${shop.name}`)
           }
         }
         
-        console.log('Tout les produits recu : ', JSON.stringify(allProducts, null, 2))
+        //console.log('Tout les produits recu : ', JSON.stringify(allProducts, null, 2))
         setProducts(allProducts)
         setFilteredProducts(allProducts)
       } catch (error: any) {
@@ -312,9 +314,9 @@ export default function ProductsPage() {
               <Card key={product.id} className="group hover:shadow-md transition-shadow overflow-hidden">
                 {/* Image du produit */}
                 <div className="aspect-square bg-gray-100 relative overflow-hidden">
-                  {product.primary_image ? (
+                  {product.primary_image?.url ? (
                     <Image
-                      src={product.primary_image}
+                      src={product.primary_image.url}
                       alt={product.name}
                       fill
                       className="object-cover group-hover:scale-105 transition-transform duration-300"

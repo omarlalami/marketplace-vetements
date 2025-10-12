@@ -34,7 +34,7 @@ export default function CategoryPage() {
       setLoading(true)
       try {
         const response = await apiClient.getProducts({ slug })
-        console.log('🟢 produits recu : ', JSON.stringify(response, null, 2))
+        //console.log('🟢 produits recu : ', JSON.stringify(response, null, 2))
 
         const data =
           response?.data?.products ||
@@ -85,6 +85,20 @@ export default function CategoryPage() {
     setFilteredProducts(result)
   }, [filters, products])
 
+  const formatPrice = (price: number | string): string => {
+    const num = typeof price === 'string' ? parseFloat(price) : price;
+    
+    if (isNaN(num)) return '0';
+    
+    // Si c'est un nombre entier, pas de décimales
+    if (num === Math.floor(num)) {
+      return num.toString();
+    }
+    
+    // Sinon, afficher avec 2 décimales
+    return num.toFixed(2);
+  }
+
   // 🔄 Callback reçu du composant SidebarResearch
   const handleFilterChange = (newFilters: {
     minPrice?: number
@@ -132,7 +146,7 @@ export default function CategoryPage() {
                   <CardHeader className="p-0">
                     <div className="relative w-full h-48">
                       <Image
-                        src={product.image_url || '/placeholder.png'}
+                        src={product.primary_image?.url || '/placeholder.png'}
                         alt={product.name}
                         fill
                         className="object-cover group-hover:scale-105 transition-transform duration-300"
@@ -148,7 +162,7 @@ export default function CategoryPage() {
                     </p>
                     {product.min_price && (
                       <p className="mt-2 text-primary font-bold">
-                        À partir de {product.min_price} DZD
+                        À partir de {formatPrice(product.min_price)} DZD
                       </p>
                     )}
                   </CardContent>

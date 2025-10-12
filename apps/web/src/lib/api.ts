@@ -190,11 +190,12 @@ class ApiClient {
   //  depuis dashboard\products\page.tsx ProductsPage
   // Récupérer les produits d'une boutique spécifique (pour le dashboard)
   // tester ok
-  async getShopProducts(shopId: string) {
+  //a suprimer car ca se repete avec getProducts quiu propose deja de filtrer avec shop_slug
+/*   async getShopProducts(shopId: string) {
     const response = await this.client.get(`/products/shop/${shopId}/products`)
     console.log(response.data)
     return response.data
-  }
+  } */
 
   //tester ok depuis EditProductPage
   async getProductForEdit(id: string) {
@@ -219,8 +220,10 @@ class ApiClient {
     return response.data
   }
 
-  async deleteProductImage(productId: string, imageId: string) {
-    const response = await this.client.delete(`/products/${productId}/images/${imageId}`)
+  // tester ok
+  async deleteProductImage(productId: string, imageKey: string) {
+    //console.log("donne a envoyer depuis api client delete imge product" + productId + "     " + encodeURIComponent(imageKey));
+    const response = await this.client.delete(`/products/${productId}/images/${encodeURIComponent(imageKey)}`)
     return response.data
   }
 

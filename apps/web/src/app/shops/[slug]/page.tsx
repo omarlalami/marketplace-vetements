@@ -39,7 +39,10 @@ interface Product {
   description: string
   price: number
   category_name: string
-  primary_image: string
+    primary_image?: {
+    url: string
+    key: string
+  } | null
   created_at: string
 }
 
@@ -321,11 +324,12 @@ export default function ShopPage() {
                   <div className={`bg-gray-100 relative overflow-hidden ${
                     viewMode === 'grid' ? 'aspect-square' : 'h-48 sm:h-32'
                   }`}>
-                    {product.primary_image ? (
+                    {product.primary_image?.url ? (
                       <Image
-                        src={product.primary_image}
+                        src={product.primary_image.url}
                         alt={product.name}
                         fill
+                        priority
                         className="object-cover group-hover:scale-105 transition-transform duration-300"
                       />
                     ) : (

@@ -56,11 +56,11 @@ export default function EditProductPage() {
     name: '',
     description: '',
     categoryId: '',
-    price: '',
   })
   
   const [variants, setVariants] = useState<Variant[]>([])
   const [existingImages, setExistingImages] = useState<ProductImage[]>([])
+  const [imagesToDelete, setImagesToDelete] = useState<string[]>([])
   const [newImages, setNewImages] = useState<File[]>([])
   const [categories, setCategories] = useState([])
   const [attributes, setAttributes] = useState<Attribute[]>([])
@@ -74,16 +74,13 @@ export default function EditProductPage() {
       try {
         setLoading(true)
         const [productData, categoriesData, attributesData] = await Promise.all([
-          apiClient.getProductForEdit(productId),
+          apiClient.getProduct(productId),
           apiClient.getCategories(),
           apiClient.getAttributes()
         ])
 
-console.log("debut log des donnees recu")
-console.log(productData)
-console.log(categoriesData)
-console.log(attributesData)
-console.log("fin log des donnees recu")
+        //console.log("produit get for edit", JSON.stringify( await apiClient.getProductForEdit(productId), null, 2))
+        //console.log("produit get classic", JSON.stringify( await apiClient.getProduct(productId), null, 2))
 
         const product = productData.product
         
@@ -91,7 +88,6 @@ console.log("fin log des donnees recu")
           name: product.name || '',
           description: product.description || '',
           categoryId: product.category_id || '',
-          price: product.price ? product.price.toString() : '',
         })
 
         // Convertir les variantes au bon format
@@ -109,7 +105,13 @@ console.log("fin log des donnees recu")
         setVariants(formattedVariants)
 
         // Images existantes
-        setExistingImages(product.images || [])
+        // ✅ Use images from getProduct
+        const formattedImages = (product.images || []).map((img: any, index: number) => ({
+          id: img.key,
+          url: img.url,
+          is_primary: index === 0 // mark the first image as primary if needed
+        }))
+        setExistingImages(formattedImages)
         setCategories(categoriesData.categories)
         setAttributes(attributesData.attributes)
         
@@ -220,15 +222,14 @@ console.log("fin log des donnees recu")
     }))
   }
 
-  const handleDeleteExistingImage = async (imageId: string) => {
+  const handleDeleteExistingImage = async (imageKey: string) => {
     if (!confirm('Êtes-vous sûr de vouloir supprimer cette image ?')) return
 
-    try {
-      await apiClient.deleteProductImage(productId, imageId)
-      setExistingImages(prev => prev.filter(img => img.id !== imageId))
-    } catch (error) {
-      console.error('Erreur suppression image:', error)
-    }
+    // Retirer visuellement l’image
+    setExistingImages(prev => prev.filter(img => img.id !== imageKey))
+
+    // Marquer pour suppression lors du "save"
+    setImagesToDelete(prev => [...prev, imageKey])
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -242,7 +243,6 @@ console.log("fin log des donnees recu")
         name: formData.name,
         description: formData.description,
         categoryId: formData.categoryId || undefined,
-        price: formData.price ? parseFloat(formData.price) : undefined,
         variants: variants.map(v => ({
           id: v.id, // ✅ Envoie aussi l’ID de la variante
           stockQuantity: v.stock_quantity,
@@ -250,9 +250,18 @@ console.log("fin log des donnees recu")
           attributes: v.attributes.map(attr => attr.value_id)
         }))
       }
-      console.log("donne envoyer du formulaire")
-      console.log(productData)
+      //console.log("donne envoyer du formulaire")
+      //console.log(productData)
       await apiClient.updateProduct(productId, productData)
+
+      // 2️⃣ Supprimer les images marquées
+      for (const imageKey of imagesToDelete) {
+        try {
+          await apiClient.deleteProductImage(productId, imageKey)
+        } catch (err) {
+          console.error("Erreur suppression différée:", err)
+        }
+      }
 
       // Upload des nouvelles images si présentes
       if (newImages.length > 0) {
@@ -610,6 +619,7 @@ console.log("fin log des donnees recu")
             )}
 
             {/* Nouvelles images */}
+            {existingImages.length < 3 && (
             <Card>
               <CardHeader>
                 <CardTitle>Ajouter des images</CardTitle>
@@ -620,11 +630,12 @@ console.log("fin log des donnees recu")
               <CardContent>
                 <ImageUpload
                   onImagesChange={setNewImages}
-                  maxFiles={10}
+                  maxFiles={3 - existingImages.length}
                   maxSizePerFile={5}
                 />
               </CardContent>
             </Card>
+            )}
 
             {/* Actions */}
             <Card>
@@ -648,35 +659,6 @@ console.log("fin log des donnees recu")
               </CardContent>
             </Card>
 
-            {/* Aperçu */}
-            {formData.name && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">Aperçu modifié</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <p className="font-medium">{formData.name}</p>
-{/*                   {formData.price && (
-                    <p className="text-lg font-bold text-green-600">
-                      <span>
-                        À partir de {formatPrice(formData.price)} DZD
-                      </span>
-                    </p>
-                  )} */}
-                  <p className="text-sm text-muted-foreground">
-                    {variants.length} variante{variants.length > 1 ? 's' : ''}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    {existingImages.length + newImages.length} image{(existingImages.length + newImages.length) > 1 ? 's' : ''}
-                  </p>
-                  {variants.length > 0 && (
-                    <div className="text-sm text-muted-foreground">
-                      Stock total: {variants.reduce((sum, v) => sum + v.stock_quantity, 0)} unités
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            )}
           </div>
         </div>
       </div>

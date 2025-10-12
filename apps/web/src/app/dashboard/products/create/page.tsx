@@ -342,7 +342,7 @@ export default function CreateProductPage() {
               <CardContent>
                 <ImageUpload
                   onImagesChange={setSelectedImages}
-                  maxFiles={10}
+                  maxFiles={3}
                   maxSizePerFile={5}
                 />
               </CardContent>

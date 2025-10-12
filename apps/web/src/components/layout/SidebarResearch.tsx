@@ -50,7 +50,7 @@ export function SidebarResearch({ onFilterChange }: SidebarResearchProps) {
       minPrice: minPrice ? parseFloat(minPrice) : undefined,
       maxPrice: maxPrice ? parseFloat(maxPrice) : undefined,
       search: search || undefined,
-      shopSlug: shopSlug || undefined,
+      shopSlug: shopSlug === 'all' ? undefined : shopSlug || undefined,
     })
   }
 

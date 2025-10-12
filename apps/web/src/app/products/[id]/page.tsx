@@ -19,7 +19,7 @@ import Image from 'next/image'
 import { ClientLayout } from '@/components/layout/ClientLayout'
 
 interface ProductImage {
-  id: string
+  key: string
   url: string
   is_primary: boolean
 }
@@ -179,7 +179,7 @@ export default function ProductDetailPage() {
             <div className="flex gap-2 mt-3">
               {product.images.map((img) => (
                 <button
-                  key={img.id}
+                  key={img.key}
                   onClick={() => setSelectedImage(img.url)}
                   className={`w-20 h-20 rounded-md overflow-hidden border-2 ${
                     selectedImage === img.url ? 'border-black' : 'border-transparent'

@@ -30,7 +30,7 @@ app.use('/categories', categoryRoutes);
 app.use('/attributes', attributesRoutes);
 app.use('/orders', ordersRoutes);
 
-/* app.use((req, res, next) => {
+/*  app.use((req, res, next) => {
   console.log("🔎 New request:")
   console.log("Method:", req.method)
   console.log("URL:", req.originalUrl)
@@ -38,7 +38,10 @@ app.use('/orders', ordersRoutes);
   console.log("Cookies:", req.cookies)
   console.log("Body:", req.body)
   next()
-}) */
+})  */
+ app.use((req, res, next) => {
+  next()
+}) 
 
 // Route de test
 app.get('/health', (req, res) => {
@@ -66,9 +69,9 @@ const PORT = process.env.PORT;
 initializeBuckets()
   .then(() => {
     app.listen(PORT, () => {
-      console.log(`🚀 API Marketplace démarrée sur le port ${PORT}`);
-      console.log(`📍 Health check: http://localhost:${PORT}/health`);
-      console.log(`📍 Documentation des routes:`);
+      //console.log(`🚀 API Marketplace démarrée sur le port ${PORT}`);
+      //console.log(`📍 Health check: http://localhost:${PORT}/health`);
+     /*  console.log(`📍 Documentation des routes:`);
       console.log(`   • POST /auth/register - Inscription`);
       console.log(`   • POST /auth/login - Connexion`);
       console.log(`   • GET /auth/profile - Profil utilisateur`);
@@ -76,7 +79,7 @@ initializeBuckets()
       console.log(`   • GET /shops/my-shops - Mes boutiques`);
       console.log(`   • POST /products - Créer un produit`);
       console.log(`   • GET /products - Rechercher des produits`);
-      console.log(`   • GET /categories - Toutes les catégories`);
+      console.log(`   • GET /categories - Toutes les catégories`); */
     });
   })
   .catch(error => {

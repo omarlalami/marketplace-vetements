@@ -28,7 +28,10 @@ interface Product {
   shop_name: string
   shop_slug: string
   category_name: string
-  primary_image: string
+  primary_image?: {
+    url: string
+    key: string
+  } | null
   created_at: string
 }
 
@@ -339,9 +342,9 @@ useEffect(() => {
                       <div className={`bg-gray-100 relative overflow-hidden ${
                         viewMode === 'grid' ? 'aspect-square' : 'h-48 sm:h-32'
                       }`}>
-                        {product.primary_image ? (
+                        {product.primary_image?.url ? (
                           <Image
-                            src={product.primary_image}
+                            src={product.primary_image.url}
                             alt={product.name}
                             fill
                             className="object-cover group-hover:scale-105 transition-transform duration-300"
