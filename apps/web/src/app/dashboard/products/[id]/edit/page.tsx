@@ -60,6 +60,7 @@ export default function EditProductPage() {
   
   const [variants, setVariants] = useState<Variant[]>([])
   const [existingImages, setExistingImages] = useState<ProductImage[]>([])
+  const [imagesToDelete, setImagesToDelete] = useState<string[]>([])
   const [newImages, setNewImages] = useState<File[]>([])
   const [categories, setCategories] = useState([])
   const [attributes, setAttributes] = useState<Attribute[]>([])
@@ -224,13 +225,11 @@ export default function EditProductPage() {
   const handleDeleteExistingImage = async (imageKey: string) => {
     if (!confirm('Êtes-vous sûr de vouloir supprimer cette image ?')) return
 
-    try {
-      //console.log("debug handledeleteexistingimage " + productId + "    " + imageKey)
-      await apiClient.deleteProductImage(productId, imageKey)
-      setExistingImages(prev => prev.filter(img => img.id !== imageKey))
-    } catch (error) {
-      console.error('Erreur suppression image:', error)
-    }
+    // Retirer visuellement l’image
+    setExistingImages(prev => prev.filter(img => img.id !== imageKey))
+
+    // Marquer pour suppression lors du "save"
+    setImagesToDelete(prev => [...prev, imageKey])
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -254,6 +253,15 @@ export default function EditProductPage() {
       //console.log("donne envoyer du formulaire")
       //console.log(productData)
       await apiClient.updateProduct(productId, productData)
+
+      // 2️⃣ Supprimer les images marquées
+      for (const imageKey of imagesToDelete) {
+        try {
+          await apiClient.deleteProductImage(productId, imageKey)
+        } catch (err) {
+          console.error("Erreur suppression différée:", err)
+        }
+      }
 
       // Upload des nouvelles images si présentes
       if (newImages.length > 0) {
@@ -611,6 +619,7 @@ export default function EditProductPage() {
             )}
 
             {/* Nouvelles images */}
+            {existingImages.length < 3 && (
             <Card>
               <CardHeader>
                 <CardTitle>Ajouter des images</CardTitle>
@@ -621,11 +630,12 @@ export default function EditProductPage() {
               <CardContent>
                 <ImageUpload
                   onImagesChange={setNewImages}
-                  maxFiles={3}
+                  maxFiles={3 - existingImages.length}
                   maxSizePerFile={5}
                 />
               </CardContent>
             </Card>
+            )}
 
             {/* Actions */}
             <Card>
@@ -649,35 +659,6 @@ export default function EditProductPage() {
               </CardContent>
             </Card>
 
-            {/* Aperçu */}
-            {formData.name && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">Aperçu modifié</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <p className="font-medium">{formData.name}</p>
-{/*                   {formData.price && (
-                    <p className="text-lg font-bold text-green-600">
-                      <span>
-                        À partir de {formatPrice(formData.price)} DZD
-                      </span>
-                    </p>
-                  )} */}
-                  <p className="text-sm text-muted-foreground">
-                    {variants.length} variante{variants.length > 1 ? 's' : ''}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    {existingImages.length + newImages.length} image{(existingImages.length + newImages.length) > 1 ? 's' : ''}
-                  </p>
-                  {variants.length > 0 && (
-                    <div className="text-sm text-muted-foreground">
-                      Stock total: {variants.reduce((sum, v) => sum + v.stock_quantity, 0)} unités
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            )}
           </div>
         </div>
       </div>
