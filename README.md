@@ -38,16 +38,6 @@ CREATE SCHEMA marketplace_schema;
 GRANT ALL ON SCHEMA marketplace_schema TO marketplace;
 \dn+ marketplace_schema
 
-## Premier test de la base de données
-
-Test script de connection & creation & remplissage base de données
-
-```bash
-
-marketplace-vetements> pnpm migrate
-marketplace-vetements> pnpm seed
-
-```
 
 ## Test minimal avec serveur simple
 
@@ -81,12 +71,12 @@ curl -X POST http://localhost:3001/auth/register \
 ```bash
 
 # Build packages Frontend & API
-pnpm build
+\marketplace-vetements> pnpm install
 
-# Setup database & creation & remplissage
+# Setup database: Script de connection & creation & remplissage
 pnpm setup-db
 
 # Start Frontend & API
-pnpm dev
+\marketplace-vetements> pnpm dev
 
 ```

@@ -296,10 +296,19 @@ class ApiClient {
   }
 
   //tester ok depuis ConfirmationOrderPage
-  async getOrderById(orderId: string) {
+  //a suuprimer
+/*   async getOrderById(orderId: string) {
     const response = await this.client.get(`/orders/${orderId}`);
     return response.data;
+  } */
+
+  // Récupérer une commande par ordernumber
+  //tester ok depuis ConfirmationOrderPage
+  async getOrderByOrderNumber(orderNumber: string) {
+    const response = await this.client.get(`/orders/${orderNumber}`);
+    return response.data;
   }
+
 
   // Attrbiutes
   // ⚡ Récupérer les attributs (avec leurs valeurs)
