@@ -128,7 +128,7 @@ CREATE TABLE orders (
   shipping_address JSONB NOT NULL, -- {name, street, city, postal_code, country, phone}
   
   -- Informations de paiement
-  payment_method VARCHAR(50), -- card, paypal, bank_transfer
+  payment_method VARCHAR(50), -- card, paypal, bank_transfer, cash_on_delivery
   payment_status VARCHAR(50) DEFAULT 'pending', -- pending, paid, failed, refunded
   payment_id VARCHAR(255), -- ID de transaction externe (Stripe, PayPal, etc.)
   

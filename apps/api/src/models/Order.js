@@ -57,8 +57,7 @@ static async createOrder(userId, payload) {
         s.slug AS shop_slug,
         pv.id AS variant_id,
         pv.stock_quantity,
-        pv.price AS variant_price,
-        (SELECT url FROM product_images WHERE product_id = p.id AND is_primary = true LIMIT 1) AS product_image_url
+        pv.price AS variant_price
       FROM product_variants pv
       JOIN products p ON pv.product_id = p.id
       JOIN shops s ON p.shop_id = s.id
@@ -131,7 +130,7 @@ static async createOrder(userId, payload) {
         globalTax,
         globalTotal,
         JSON.stringify(shippingAddress),
-        'card',
+        'cash_on_delivery',
         'pending',
         'pending'
       ]
@@ -517,8 +516,23 @@ static async createOrder(userId, payload) {
    */
   static async generateOrderNumber() {
     const year = new Date().getFullYear();
-    const random = Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
-    return `ORD-${year}-${random}`;
+
+    let orderNumber;
+    let exists = true;
+
+    while (exists) {
+      const random = Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
+      orderNumber = `ORD-${year}-${random}`;
+
+      const result = await pool.query(
+        'SELECT 1 FROM orders WHERE order_number = $1 LIMIT 1',
+        [orderNumber]
+      );
+
+      exists = result.rows.length > 0;
+    }
+
+    return orderNumber;
   }
   
     /**
