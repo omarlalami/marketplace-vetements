@@ -21,15 +21,15 @@ const register = async (req, res) => {
   try {
     const { email, password, firstName, lastName } = req.body;
 
-    const existingUser = await User.findByEmail(email);
+    const existingUser = await User.isMailUsed(email);
     if (existingUser) {
       return res.status(400).json({ error: 'Un compte avec cet email existe déjà' });
     }
 
     const user = await User.create({ email, password, firstName, lastName });
-    const token = generateToken(user.id);
+    //const token = generateToken(user.id);
 
-    res.cookie('auth-store', token, cookieOptions);
+    //res.cookie('auth-store', token, cookieOptions);
 
     res.status(201).json({
       message: 'Compte créé avec succès',
@@ -38,8 +38,7 @@ const register = async (req, res) => {
         email: user.email,
         firstName: user.profile.first_name,
         lastName: user.profile.last_name
-      },
-      token
+      }//, token
     });
 
   } catch (error) {

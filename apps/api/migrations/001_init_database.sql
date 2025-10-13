@@ -8,10 +8,13 @@ CREATE TABLE users (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   email VARCHAR(255) UNIQUE NOT NULL,
   password_hash VARCHAR(255) NOT NULL,
-  is_active BOOLEAN DEFAULT TRUE,
+  is_active BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- will be activated on v2 when open register to everybody
+-- ALTER TABLE users ALTER COLUMN is_active SET DEFAULT TRUE;
 
 -- Profils utilisateurs
 CREATE TABLE user_profiles (
