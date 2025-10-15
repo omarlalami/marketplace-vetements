@@ -452,7 +452,8 @@ static async createOrder(userId, payload) {
   }
 
   // Créer une commande à partir du panier existant en base
-  static async createFromCart(userId, shippingAddress, paymentMethod = 'card') {
+  // pas encore utiliser
+/*   static async createFromCart(userId, shippingAddress, paymentMethod = 'card') {
     const client = await pool.connect();
     
     try {
@@ -609,7 +610,7 @@ static async createOrder(userId, payload) {
     } finally {
       client.release();
     }
-  }
+  } */
 
     /**
    * Générer un numéro de commande unique

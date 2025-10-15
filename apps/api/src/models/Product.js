@@ -1,4 +1,5 @@
 const pool = require('../config/database');
+const { slugify } = require('transliteration'); 
 
 class Product {
 
@@ -9,15 +10,28 @@ class Product {
     try {
       await client.query('BEGIN');
 
+      // 🔹 Générer un slug unique à partir du nom
+      let baseSlug = slugify(productData.name).toLowerCase();
+      let uniqueSlug = baseSlug;
+      let counter = 1;
+
+      // Vérifie que le slug n’existe pas déjà
+      while (true) {
+        const checkSlug = await client.query(`SELECT * FROM products WHERE slug = $1`, [uniqueSlug]);
+        if (checkSlug.rowCount === 0) break;
+        uniqueSlug = `${baseSlug}-${counter++}`;
+      }
+
       // 🔹 Création du produit
       const productQuery = `
-        INSERT INTO products (name, description, shop_id, created_by, category_id)
-        VALUES ($1, $2, $3, $4, $5)
+        INSERT INTO products (name, slug, description, shop_id, created_by, category_id)
+        VALUES ($1, $2, $3, $4, $5, $6)
         RETURNING *
       `;
 
       const productResult = await client.query(productQuery, [
         productData.name,
+        uniqueSlug,
         productData.description || null,
         productData.shopId,
         productData.createdBy,
@@ -85,6 +99,7 @@ class Product {
       client.release();
     }
   }
+
   //tester ok 
   static async findById(id) {
     const query = `
@@ -135,6 +150,48 @@ class Product {
     return product;
   }
 
+  // Récupérer un produit par slug (public)
+  static async findBySlug(slug) {
+    const query = `
+      SELECT p.*, s.name as shop_name, s.slug as shop_slug,
+            c.name as category_name, c.slug as category_slug
+      FROM products p
+      LEFT JOIN shops s ON p.shop_id = s.id
+      LEFT JOIN categories c ON p.category_id = c.id
+      WHERE p.slug = $1 AND p.is_active = true
+    `;
+
+    const result = await pool.query(query, [slug]);
+    const product = result.rows[0];
+
+    if (product) {
+      // 🔹 Charger les variantes
+      const variantsQuery = `
+        SELECT v.id, v.stock_quantity, v.price
+        FROM product_variants v
+        WHERE v.product_id = $1 AND v.is_active = true
+      `;
+      const variantsResult = await pool.query(variantsQuery, [product.id]);
+      product.variants = variantsResult.rows;
+
+      // 🔹 Charger les attributs de chaque variante
+      for (let variant of product.variants) {
+        const attrsQuery = `
+          SELECT av.id as value_id, av.value, a.name as attribute
+          FROM product_variant_attributes pva
+          JOIN attribute_values av ON pva.attribute_value_id = av.id
+          JOIN attributes a ON av.attribute_id = a.id
+          WHERE pva.product_variant_id = $1
+        `;
+        const attrsResult = await pool.query(attrsQuery, [variant.id]);
+        variant.attributes = attrsResult.rows;
+      }
+    }
+
+    return product;
+  }
+
+
   // Route publique pour les produits (avec filtre boutique)
   static async searchPublicProducts({ search, slug, minPrice, maxPrice, shop, limit = 20, page = 1 }) {
     const pageNumber = parseInt(page) || 1;
@@ -145,6 +202,7 @@ class Product {
       SELECT 
         p.id,
         p.name,
+        p.slug,
         p.description,
         p.created_at,
         s.name AS shop_name,
@@ -210,7 +268,7 @@ class Product {
     }
 
     query += `
-      GROUP BY p.id, s.name, s.slug, c.name, c.slug
+      GROUP BY p.id, p.slug, s.name, s.slug, c.name, c.slug
       ORDER BY p.created_at DESC
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `;

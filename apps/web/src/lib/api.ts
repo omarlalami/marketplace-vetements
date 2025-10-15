@@ -145,13 +145,14 @@ class ApiClient {
     return response.data
   }
 
-  async getProduct(id: string) {
-    const response = await this.client.get(`/products/${id}`)
+  // Récupérer un produit par slug (public)
+  async getProduct(slug: string) {
+    const response = await this.client.get(`/products/${slug}`)
     return response.data
   }
 
-  // Méthode mise à jour pour getProducts avec plus d'options
-  // utiliser dans page d'acceuil, page de produits par boutique, page de produits
+  // Route publique pour les produits (avec filtre boutique)
+  // utiliser dans page d'acceuil, page de produits par boutique, page de produits ...
   async getProducts(params?: { 
     search?: string
     slug?: string
@@ -163,6 +164,8 @@ class ApiClient {
   }) {
     try {
       const response = await this.client.get('/products/public', { params })
+      console.log('🟢 produits recu : ', JSON.stringify(response, null, 2))
+
       return response.data
     } catch (error: any) {
       console.error('❌ Erreur API getProducts:', error.response?.data || error.message)

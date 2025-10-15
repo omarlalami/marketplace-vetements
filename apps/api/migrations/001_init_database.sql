@@ -56,7 +56,8 @@ CREATE TABLE categories (
 -- Produits
 CREATE TABLE products (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  name VARCHAR(255) NOT NULL,
+  name VARCHAR(100) NOT NULL,
+  slug VARCHAR(100) UNIQUE NOT NULL,
   description TEXT,
   shop_id UUID NOT NULL REFERENCES shops(id),
   created_by UUID NOT NULL REFERENCES users(id),
@@ -109,6 +110,7 @@ CREATE INDEX idx_products_shop_id ON products(shop_id);
 CREATE INDEX idx_products_category ON products(category_id);
 CREATE INDEX idx_product_variants_product_id ON product_variants(product_id);
 CREATE INDEX idx_shops_slug ON shops(slug);
+CREATE INDEX idx_products_slug ON products(slug);
 CREATE INDEX idx_categories_slug ON categories(slug);
 
 

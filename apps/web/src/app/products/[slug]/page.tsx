@@ -36,6 +36,7 @@ interface ProductVariant {
 
 interface Product {
   id: string
+  slug: string
   name: string
   description: string | null
   price: number
@@ -48,7 +49,7 @@ interface Product {
 
 export default function ProductDetailPage() {
   const params = useParams()
-  const productId = params.id as string
+  const productSlug = params.slug as string
 
   const [product, setProduct] = useState<Product | null>(null)
   const [loading, setLoading] = useState(true)
@@ -65,7 +66,7 @@ export default function ProductDetailPage() {
     const fetchProduct = async () => {
       try {
         setLoading(true)
-        const data = await apiClient.getProduct(productId)
+        const data = await apiClient.getProduct(productSlug)
         console.log('Produit chargé:', data)
         setProduct(data.product)
 
@@ -79,8 +80,8 @@ export default function ProductDetailPage() {
         setLoading(false)
       }
     }
-    if (productId) fetchProduct()
-  }, [productId])
+    if (productSlug) fetchProduct()
+  }, [productSlug])
 
   const attributeTypes = Array.from(
     new Set(product?.variants?.flatMap((v) => v.attributes.map((a) => a.attribute)) || [])
