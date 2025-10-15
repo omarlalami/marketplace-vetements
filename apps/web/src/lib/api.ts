@@ -263,33 +263,20 @@ class ApiClient {
     }
     total: number
   }) {
-    const response = await this.client.post('/orders', payload)
-    return response.data as {
-      ok: boolean
-      message: string
-      id: string // global order ID
-      order_number: string
-      order: {
-        id: string
-        order_number: string
-        subtotal: number
-        total_amount: number
-        status: string
+    try {
+      const response = await this.client.post('/orders', payload)
+      return response.data
+    } catch (error: any) {
+      // 🔹 Si le backend renvoie un message d’erreur, on le passe proprement
+      if (error.response && error.response.data) {
+        return error.response.data
       }
-      shop_orders: Array<{
-        id: string
-        shop_id: string
-        shop_name: string
-        subtotal: number
-        total_amount: number
-        items: Array<{
-          id: string
-          product_name: string
-          quantity: number
-          unit_price: number
-          subtotal: number
-        }>
-      }>
+
+      // 🔹 Sinon, on renvoie une erreur générique
+      return {
+        ok: false,
+        message: 'Erreur de connexion au serveur',
+      }
     }
   }
 

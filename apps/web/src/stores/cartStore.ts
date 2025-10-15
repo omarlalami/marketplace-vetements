@@ -17,7 +17,7 @@ export interface CartItem {
 
 interface CartStore {
   items: CartItem[];
-  addItem: (item: Omit<CartItem, 'quantity' | 'id'> & Partial<Pick<CartItem, 'shopName' | 'shopSlug' | 'selectedVariants'>>) => void;
+  addItem: (item: Omit<CartItem, 'id'> & Partial<Pick<CartItem, 'shopName' | 'shopSlug' | 'selectedVariants'>>) => void;
   removeItem: (id: string) => void;
   updateQuantity: (id: string, quantity: number) => void;
   clearCart: () => void;
@@ -26,6 +26,7 @@ interface CartStore {
 }
 
 // Fonction pour créer un ID unique basé sur le produit et ses variantes
+//a voir si on ne supprime pas ...
 const createCartItemId = (productId: string, variants?: Record<string, string>): string => {
   if (!variants || Object.keys(variants).length === 0) {
     return productId;
@@ -57,7 +58,7 @@ export const useCartStore = create<CartStore>()(
           set({
             items: items.map((i) =>
               i.id === cartItemId
-                ? { ...i, quantity: i.quantity + 1 }
+                ? { ...i, quantity: i.quantity + (item.quantity || 1) }
                 : i
             ),
           });
@@ -67,7 +68,7 @@ export const useCartStore = create<CartStore>()(
               ...item, 
               id: cartItemId,
               price, 
-              quantity: 1 
+              quantity: item.quantity || 1
             }] 
           });
         }

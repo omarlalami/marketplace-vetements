@@ -34,15 +34,18 @@ export default function CheckoutPage() {
       const result = await apiClient.createOrder(payload)
 
       if (!result.ok) {
-        throw new Error(result.message || 'Erreur pendant la validation de la commande')
+        // 🔹 Affiche proprement le message backend (ex: "Stock insuffisant pour Pulma")
+        setError(result.message || 'Erreur pendant la validation de la commande')
+        setIsSubmitting(false)
+        return
       }
 
       // Vider le panier
       clearCart()
       
       // Rediriger vers la page de confirmation
-      // Si plusieurs commandes, on redirige vers la première
       router.push(`/order/confirmation/${result.order.order_number}`)
+      setIsSubmitting(false)
 
     } catch (err: any) {
       console.error('Erreur submit order', err)
@@ -176,7 +179,11 @@ export default function CheckoutPage() {
                   />
                 </div>
 
-                {error && <div className="text-red-600 text-sm">{error}</div>}
+                {error && (
+                  <div className="text-red-600 text-sm bg-red-50 border border-red-300 p-2 rounded">
+                    {error}
+                  </div>
+                )}
 
                 <Button
                   type="submit"

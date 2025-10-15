@@ -67,7 +67,7 @@ export default function ProductDetailPage() {
       try {
         setLoading(true)
         const data = await apiClient.getProduct(productSlug)
-        console.log('Produit chargé:', data)
+        console.log('🟢 produits recu : ', JSON.stringify(data, null, 2))
         setProduct(data.product)
 
         if (data.product.images?.length > 0) {
@@ -101,6 +101,13 @@ export default function ProductDetailPage() {
   const selectedVariant = product?.variants?.find((v) =>
     v.attributes.every((a) => selectedAttributes[a.attribute] === a.value)
   )
+  
+  // ✅ Déterminer si le produit est en rupture de stock
+  const isOutOfStock =
+    selectedVariant
+      ? selectedVariant.stock_quantity <= 0
+      : product?.variants?.length === 1 &&
+        product.variants[0].stock_quantity <= 0
 
   // ✅ Correction du prix final
   const finalPrice =
@@ -131,6 +138,7 @@ export default function ProductDetailPage() {
       shopName: product.shop_name,
       shopSlug: product.shop_slug,
       selectedVariants: selectedAttributes,
+      quantity,
     })
 
     setAddedToCart(true)
@@ -306,8 +314,16 @@ export default function ProductDetailPage() {
           </div>
 
           {/* Actions */}
-          <Button onClick={handleAddToCart} disabled={addedToCart} className="w-full">
-            {addedToCart ? (
+          <Button
+            onClick={handleAddToCart}
+            disabled={addedToCart || isOutOfStock}
+            className="w-full"
+          >
+            {isOutOfStock ? (
+              <>
+                <Shield className="mr-2 h-5 w-5" /> Rupture de stock
+              </>
+            ) : addedToCart ? (
               <>
                 <Check className="mr-2 h-5 w-5" /> Ajouté !
               </>
@@ -317,6 +333,7 @@ export default function ProductDetailPage() {
               </>
             )}
           </Button>
+
 
           <Button variant="secondary" size="lg" className="w-full">
             <MessageCircle className="mr-2 h-5 w-5" />

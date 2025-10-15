@@ -337,7 +337,7 @@ export default function ProductsPage() {
                         </Link>
                       </Button>
                       <Button size="icon" variant="secondary" asChild>
-                        <Link href={`/dashboard/products/${product.id}/edit`}>
+                        <Link href={`/dashboard/products/${product.slug || product.id}/edit`}>
                           <Edit className="h-4 w-4" />
                         </Link>
                       </Button>
