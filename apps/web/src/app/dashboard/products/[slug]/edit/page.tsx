@@ -50,7 +50,7 @@ interface ProductImage {
 export default function EditProductPage() {
   const params = useParams()
   const router = useRouter()
-  const productId = params.id as string
+  const productSlug = params.slug as string
 
   const [formData, setFormData] = useState({
     name: '',
@@ -67,6 +67,8 @@ export default function EditProductPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [productId, setProductId] = useState('')
+  
 
   // Charger les données du produit
   useEffect(() => {
@@ -74,7 +76,7 @@ export default function EditProductPage() {
       try {
         setLoading(true)
         const [productData, categoriesData, attributesData] = await Promise.all([
-          apiClient.getProduct(productId),
+          apiClient.getProduct(productSlug),
           apiClient.getCategories(),
           apiClient.getAttributes()
         ])
@@ -83,7 +85,12 @@ export default function EditProductPage() {
         //console.log("produit get classic", JSON.stringify( await apiClient.getProduct(productId), null, 2))
 
         const product = productData.product
-        
+        setProductId(product.id)
+
+        //console.log("productData.product ", JSON.stringify( productData.product, null, 2))
+        //console.log("product.id ", JSON.stringify( product.id, null, 2))
+
+
         setFormData({
           name: product.name || '',
           description: product.description || '',
@@ -123,10 +130,10 @@ export default function EditProductPage() {
       }
     }
 
-    if (productId) {
+    if (productSlug) {
       fetchData()
     }
-  }, [productId])
+  }, [productSlug])
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
@@ -252,6 +259,9 @@ export default function EditProductPage() {
       }
       //console.log("donne envoyer du formulaire")
       //console.log(productData)
+//console.log('productData: ', JSON.stringify(productData, null, 2))
+//console.log('productId: ', JSON.stringify(productId, null, 2))
+
       await apiClient.updateProduct(productId, productData)
 
       // 2️⃣ Supprimer les images marquées

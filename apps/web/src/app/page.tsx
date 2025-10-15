@@ -174,7 +174,7 @@ export default function HomePage() {
               <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                 {products.slice(0, 6).map((product: any) => (
                   <Card key={product.id} className="group hover:shadow-xl transition-all duration-300 overflow-hidden">
-                    <Link href={`/products/${product.id}`}>
+                    <Link href={`/products/${product.slug || product.id}`}>
                       <div className="aspect-square bg-gray-100 relative overflow-hidden">
                         {product.primary_image?.url ? (
                           <Image

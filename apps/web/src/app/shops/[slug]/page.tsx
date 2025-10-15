@@ -36,6 +36,7 @@ interface Shop {
 interface Product {
   id: string
   name: string
+  slug: string
   description: string
   price: number
   category_name: string
@@ -319,7 +320,7 @@ export default function ShopPage() {
           }`}>
             {filteredProducts.map((product) => (
               <Card key={product.id} className="group hover:shadow-lg transition-all duration-300 overflow-hidden">
-                <Link href={`/products/${product.id}`}>
+                <Link href={`/products/${product.slug || product.id}`}>
                   {/* Image */}
                   <div className={`bg-gray-100 relative overflow-hidden ${
                     viewMode === 'grid' ? 'aspect-square' : 'h-48 sm:h-32'

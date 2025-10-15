@@ -23,6 +23,7 @@ import { ClientLayout } from '@/components/layout/ClientLayout'
 interface Product {
   id: string
   name: string
+  slug: string
   description: string
   min_price: number
   shop_name: string
@@ -337,7 +338,7 @@ useEffect(() => {
               }`}>
                 {products.map((product) => (
                   <Card key={product.id} className="group hover:shadow-lg transition-all duration-300 overflow-hidden">
-                    <Link href={`/products/${product.id}`}>
+                    <Link href={`/products/${product.slug}`}>
                       {/* Image */}
                       <div className={`bg-gray-100 relative overflow-hidden ${
                         viewMode === 'grid' ? 'aspect-square' : 'h-48 sm:h-32'
@@ -379,7 +380,7 @@ useEffect(() => {
                     {/* Contenu */}
                     <CardContent className="p-4">
                       <div className="space-y-2">
-                        <Link href={`/products/${product.id}`}>
+                        <Link href={`/products/${product.slug}`}>
                           <h3 className="font-semibold text-lg line-clamp-1 hover:text-primary transition-colors">
                             {product.name}
                           </h3>

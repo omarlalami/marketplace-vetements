@@ -145,13 +145,14 @@ class ApiClient {
     return response.data
   }
 
-  async getProduct(id: string) {
-    const response = await this.client.get(`/products/${id}`)
+  // Récupérer un produit par slug (public)
+  async getProduct(slug: string) {
+    const response = await this.client.get(`/products/${slug}`)
     return response.data
   }
 
-  // Méthode mise à jour pour getProducts avec plus d'options
-  // utiliser dans page d'acceuil, page de produits par boutique, page de produits
+  // Route publique pour les produits (avec filtre boutique)
+  // utiliser dans page d'acceuil, page de produits par boutique, page de produits ...
   async getProducts(params?: { 
     search?: string
     slug?: string
@@ -163,6 +164,8 @@ class ApiClient {
   }) {
     try {
       const response = await this.client.get('/products/public', { params })
+      console.log('🟢 produits recu : ', JSON.stringify(response, null, 2))
+
       return response.data
     } catch (error: any) {
       console.error('❌ Erreur API getProducts:', error.response?.data || error.message)
@@ -260,33 +263,20 @@ class ApiClient {
     }
     total: number
   }) {
-    const response = await this.client.post('/orders', payload)
-    return response.data as {
-      ok: boolean
-      message: string
-      id: string // global order ID
-      order_number: string
-      order: {
-        id: string
-        order_number: string
-        subtotal: number
-        total_amount: number
-        status: string
+    try {
+      const response = await this.client.post('/orders', payload)
+      return response.data
+    } catch (error: any) {
+      // 🔹 Si le backend renvoie un message d’erreur, on le passe proprement
+      if (error.response && error.response.data) {
+        return error.response.data
       }
-      shop_orders: Array<{
-        id: string
-        shop_id: string
-        shop_name: string
-        subtotal: number
-        total_amount: number
-        items: Array<{
-          id: string
-          product_name: string
-          quantity: number
-          unit_price: number
-          subtotal: number
-        }>
-      }>
+
+      // 🔹 Sinon, on renvoie une erreur générique
+      return {
+        ok: false,
+        message: 'Erreur de connexion au serveur',
+      }
     }
   }
 
@@ -296,10 +286,19 @@ class ApiClient {
   }
 
   //tester ok depuis ConfirmationOrderPage
-  async getOrderById(orderId: string) {
+  //a suuprimer
+/*   async getOrderById(orderId: string) {
     const response = await this.client.get(`/orders/${orderId}`);
     return response.data;
+  } */
+
+  // Récupérer une commande par ordernumber
+  //tester ok depuis ConfirmationOrderPage
+  async getOrderByOrderNumber(orderNumber: string) {
+    const response = await this.client.get(`/orders/${orderNumber}`);
+    return response.data;
   }
+
 
   // Attrbiutes
   // ⚡ Récupérer les attributs (avec leurs valeurs)

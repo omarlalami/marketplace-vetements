@@ -112,11 +112,35 @@ router.get('/my-orders', authenticateToken, async (req, res) => {
 });
 
 // Récupérer une commande par ID
-router.get('/:orderId', optionalAuth, async (req, res) => {
+//a supprimer
+/* router.get('/:orderId', optionalAuth, async (req, res) => {
   try {
     const { orderId } = req.params;
 
     const order = await Order.findById(orderId, req.user ? req.user.userId : null);
+    if (!order) {
+      return res.status(404).json({ ok: false, message: 'Commande non trouvée' });
+    }
+
+    res.json({
+      ok: true,
+      order
+    });
+  } catch (error) {
+    console.error('Erreur récupération commande:', error);
+    res.status(500).json({
+      ok: false,
+      message: 'Erreur lors de la récupération de la commande'
+    });
+  }
+}); */
+
+// Récupérer une commande par ordernumber
+router.get('/:orderNumber', optionalAuth, async (req, res) => {
+  try {
+    const { orderNumber } = req.params;
+
+    const order = await Order.findByOrderNumber(orderNumber, req.user ? req.user.userId : null);
     if (!order) {
       return res.status(404).json({ ok: false, message: 'Commande non trouvée' });
     }

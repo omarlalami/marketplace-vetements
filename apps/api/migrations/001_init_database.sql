@@ -8,10 +8,13 @@ CREATE TABLE users (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   email VARCHAR(255) UNIQUE NOT NULL,
   password_hash VARCHAR(255) NOT NULL,
-  is_active BOOLEAN DEFAULT TRUE,
+  is_active BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- will be activated on v2 when open register to everybody
+-- ALTER TABLE users ALTER COLUMN is_active SET DEFAULT TRUE;
 
 -- Profils utilisateurs
 CREATE TABLE user_profiles (
@@ -53,7 +56,8 @@ CREATE TABLE categories (
 -- Produits
 CREATE TABLE products (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  name VARCHAR(255) NOT NULL,
+  name VARCHAR(100) NOT NULL,
+  slug VARCHAR(100) UNIQUE NOT NULL,
   description TEXT,
   shop_id UUID NOT NULL REFERENCES shops(id),
   created_by UUID NOT NULL REFERENCES users(id),
@@ -106,6 +110,7 @@ CREATE INDEX idx_products_shop_id ON products(shop_id);
 CREATE INDEX idx_products_category ON products(category_id);
 CREATE INDEX idx_product_variants_product_id ON product_variants(product_id);
 CREATE INDEX idx_shops_slug ON shops(slug);
+CREATE INDEX idx_products_slug ON products(slug);
 CREATE INDEX idx_categories_slug ON categories(slug);
 
 
@@ -128,7 +133,7 @@ CREATE TABLE orders (
   shipping_address JSONB NOT NULL, -- {name, street, city, postal_code, country, phone}
   
   -- Informations de paiement
-  payment_method VARCHAR(50), -- card, paypal, bank_transfer
+  payment_method VARCHAR(50), -- card, paypal, bank_transfer, cash_on_delivery
   payment_status VARCHAR(50) DEFAULT 'pending', -- pending, paid, failed, refunded
   payment_id VARCHAR(255), -- ID de transaction externe (Stripe, PayPal, etc.)
   

@@ -57,8 +57,7 @@ static async createOrder(userId, payload) {
         s.slug AS shop_slug,
         pv.id AS variant_id,
         pv.stock_quantity,
-        pv.price AS variant_price,
-        (SELECT url FROM product_images WHERE product_id = p.id AND is_primary = true LIMIT 1) AS product_image_url
+        pv.price AS variant_price
       FROM product_variants pv
       JOIN products p ON pv.product_id = p.id
       JOIN shops s ON p.shop_id = s.id
@@ -131,7 +130,7 @@ static async createOrder(userId, payload) {
         globalTax,
         globalTotal,
         JSON.stringify(shippingAddress),
-        'card',
+        'cash_on_delivery',
         'pending',
         'pending'
       ]
@@ -237,7 +236,7 @@ static async createOrder(userId, payload) {
 
 
 // Récupérer une commande précise (par ID et utilisateur)
-  static async findById(orderId, userId = null) {
+/*   static async findById(orderId, userId = null) {
     const client = await pool.connect();
 
     try {
@@ -336,9 +335,109 @@ static async createOrder(userId, payload) {
     } finally {
       client.release();
     }
+  } */
+
+// Récupérer une commande par ordernumber
+ static async findByOrderNumber(orderNumber, userId = null) {
+  const client = await pool.connect();
+
+  try {
+    // 🔍 Récupérer la commande globale par order_number
+    const orderQuery = `
+      SELECT 
+        o.id,
+        o.order_number,
+        o.user_id,
+        o.status,
+        o.subtotal,
+        o.tax,
+        o.shipping_cost,
+        o.total_amount,
+        o.shipping_address,
+        o.payment_method,
+        o.payment_status,
+        o.notes,
+        o.created_at
+      FROM orders o
+      WHERE o.order_number = $1
+      ${userId ? 'AND o.user_id = $2' : ''}
+    `;
+
+    const orderValues = userId ? [orderNumber, userId] : [orderNumber];
+    const { rows: orderRows } = await client.query(orderQuery, orderValues);
+
+    if (orderRows.length === 0) {
+      return null;
+    }
+
+    const order = orderRows[0];
+
+    // 🔍 Sous-commandes (shop_orders)
+    const shopOrdersQuery = `
+      SELECT 
+        so.id,
+        so.shop_id,
+        s.name AS shop_name,
+        s.slug AS shop_slug,
+        so.subtotal,
+        so.tax,
+        so.shipping_cost,
+        so.total_amount,
+        so.status,
+        so.created_at
+      FROM shop_orders so
+      JOIN shops s ON s.id = so.shop_id
+      WHERE so.order_id = $1
+      ORDER BY s.name ASC
+    `;
+    const { rows: shopOrders } = await client.query(shopOrdersQuery, [order.id]);
+
+    // 🔍 Articles
+    const itemsQuery = `
+      SELECT 
+        oi.id,
+        oi.shop_order_id,
+        oi.product_id,
+        oi.product_variant_id,
+        oi.product_name,
+        oi.product_image_url,
+        oi.variant_attributes,
+        oi.quantity,
+        oi.unit_price,
+        oi.subtotal
+      FROM order_items oi
+      JOIN shop_orders so ON so.id = oi.shop_order_id
+      WHERE so.order_id = $1
+      ORDER BY oi.created_at ASC
+    `;
+    const { rows: items } = await client.query(itemsQuery, [order.id]);
+
+    // 🧩 Grouper les items par shop_order_id
+    const itemsByShop = items.reduce((acc, item) => {
+      if (!acc[item.shop_order_id]) acc[item.shop_order_id] = [];
+      acc[item.shop_order_id].push(item);
+      return acc;
+    }, {});
+
+    // 🧩 Attacher les items à chaque sous-commande
+    const shopOrdersWithItems = shopOrders.map((shopOrder) => ({
+      ...shopOrder,
+      items: itemsByShop[shopOrder.id] || [],
+    }));
+
+    // ✅ Résultat final
+    return {
+      ...order,
+      shipping_address: order.shipping_address,
+      shop_orders: shopOrdersWithItems,
+    };
+  } catch (error) {
+    console.error('Erreur findByOrderNumber:', error);
+    throw error;
+  } finally {
+    client.release();
   }
-
-
+}
 
 
   /**
@@ -353,7 +452,8 @@ static async createOrder(userId, payload) {
   }
 
   // Créer une commande à partir du panier existant en base
-  static async createFromCart(userId, shippingAddress, paymentMethod = 'card') {
+  // pas encore utiliser
+/*   static async createFromCart(userId, shippingAddress, paymentMethod = 'card') {
     const client = await pool.connect();
     
     try {
@@ -510,15 +610,30 @@ static async createOrder(userId, payload) {
     } finally {
       client.release();
     }
-  }
+  } */
 
     /**
    * Générer un numéro de commande unique
    */
   static async generateOrderNumber() {
     const year = new Date().getFullYear();
-    const random = Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
-    return `ORD-${year}-${random}`;
+
+    let orderNumber;
+    let exists = true;
+
+    while (exists) {
+      const random = Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
+      orderNumber = `ORD-${year}-${random}`;
+
+      const result = await pool.query(
+        'SELECT 1 FROM orders WHERE order_number = $1 LIMIT 1',
+        [orderNumber]
+      );
+
+      exists = result.rows.length > 0;
+    }
+
+    return orderNumber;
   }
   
     /**

@@ -47,6 +47,9 @@ importers:
       pg:
         specifier: ^8.11.0
         version: 8.16.3
+      transliteration:
+        specifier: ^2.3.5
+        version: 2.3.5
       uuid:
         specifier: ^9.0.0
         version: 9.0.1
@@ -2853,6 +2856,11 @@ packages:
 
   touch@3.1.1:
     resolution: {integrity: sha512-r0eojU4bI8MnHr8c5bNo7lJDdI2qXlWWJk6a9EAFG7vbhTjElYhBVS3/miuE0uOuoLdb8Mc/rVfsmm6eo5o9GA==}
+    hasBin: true
+
+  transliteration@2.3.5:
+    resolution: {integrity: sha512-HAGI4Lq4Q9dZ3Utu2phaWgtm3vB6PkLUFqWAScg/UW+1eZ/Tg6Exo4oC0/3VUol/w4BlefLhUUSVBr/9/ZGQOw==}
+    engines: {node: '>=6.0.0'}
     hasBin: true
 
   tree-kill@1.2.2:
@@ -6012,6 +6020,10 @@ snapshots:
   toidentifier@1.0.1: {}
 
   touch@3.1.1: {}
+
+  transliteration@2.3.5:
+    dependencies:
+      yargs: 17.7.2
 
   tree-kill@1.2.2: {}
 

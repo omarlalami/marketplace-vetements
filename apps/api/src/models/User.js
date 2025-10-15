@@ -54,6 +54,16 @@ class User {
     const result = await pool.query(query, [email]);
     return result.rows[0];
   }
+  
+  static async isMailUsed(email) {
+    const query = `
+      SELECT * 
+      FROM users u
+      WHERE u.email = $1 
+    `;
+    const result = await pool.query(query, [email]);
+    return result.rows[0];
+  }
 
   static async findById(id) {
     const query = `

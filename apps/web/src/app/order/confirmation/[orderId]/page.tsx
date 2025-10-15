@@ -68,11 +68,16 @@ export default function ConfirmationOrderPage() {
 
     const fetchOrder = async () => {
       try {
-        const res = await apiClient.getOrderById(orderId as string)
+        const res = await apiClient.getOrderByOrderNumber(orderId as string)
         console.log('✅ Order found RES:', JSON.stringify(res, null, 2))
         setOrder(res.order)
-      } catch (error) {
-        console.error('Erreur chargement commande', error)
+      } catch (error: any) {
+        if (error.response && error.response.status === 404) {
+          console.warn('Commande non trouvée')
+          setOrder(null)
+        } else {
+          console.error('Erreur inattendue chargement commande', error)
+        }
       } finally {
         setLoading(false)
       }
@@ -91,13 +96,15 @@ export default function ConfirmationOrderPage() {
 
   if (!order) {
     return (
-      <div className="flex flex-col justify-center items-center h-[60vh] text-center space-y-4">
-        <p className="text-lg">Commande introuvable.</p>
-        <Button onClick={() => router.push('/')}>
-          <Home className="w-4 h-4 mr-2" />
-          Retour à l'accueil
-        </Button>
-      </div>
+      <ClientLayout>
+        <div className="flex flex-col justify-center items-center h-[60vh] text-center space-y-4">
+          <p className="text-lg">Commande introuvable.</p>
+          <Button onClick={() => router.push('/')}>
+            <Home className="w-4 h-4 mr-2" />
+            Retour à l'accueil
+          </Button>
+        </div>
+      </ClientLayout>
     )
   }
 
@@ -129,7 +136,7 @@ export default function ConfirmationOrderPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Commande #{order.order_number}</CardTitle>
+            <CardTitle>Commande {order.order_number}</CardTitle>
             <p className="text-sm text-muted-foreground">
               Passée le {new Date(order.created_at).toLocaleDateString()}
             </p>

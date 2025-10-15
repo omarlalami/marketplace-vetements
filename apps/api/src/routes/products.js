@@ -115,17 +115,21 @@ router.get('/public', async (req, res) => {
   }
 });
 
-// Récupérer un produit par ID (public)
-router.get('/:id', optionalAuth, async (req, res) => {
+// Récupérer un produit par slug (public)
+router.get('/:slug', optionalAuth, async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id);
-    
+    // 🔹 Récupération du slug dans l’URL
+    const { slug } = req.params;
+
+    // 🔹 Recherche du produit via le slug
+    const product = await Product.findBySlug(slug);
+
     if (!product) {
       return res.status(404).json({ error: 'Produit non trouvé' });
     }
 
-    // 2️⃣ Récupération des images liées
-    product.images= await ImageService.getProductImages(req.params.id);
+    // 🔹 Récupération des images liées au produit (via son id)
+    product.images = await ImageService.getProductImages(product.id);
 
     res.json({ product });
    /*  const images = await ImageService.getProductImages(req.params.id);
