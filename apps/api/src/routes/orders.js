@@ -2,6 +2,8 @@ const express = require('express');
 const Order = require('../models/Order');
 const { authenticateToken, optionalAuth } = require('../middleware/auth');
 const Joi = require('joi');
+const { findByNumberAndEmail } = require('../controllers/orderController');
+
 
 const router = express.Router();
 
@@ -135,7 +137,7 @@ router.get('/my-orders', authenticateToken, async (req, res) => {
   }
 }); */
 
-// Récupérer une commande par ordernumber
+// Récupérer une commande par orderNumber
 router.get('/:orderNumber', optionalAuth, async (req, res) => {
   try {
     const { orderNumber } = req.params;
@@ -157,5 +159,16 @@ router.get('/:orderNumber', optionalAuth, async (req, res) => {
     });
   }
 });
+
+// Track une commande par orderNumber & mail
+/* router.get('/track', async (req, res) => {
+  const { email, orderNumber } = req.query
+  const order = await Order.findByNumberAndEmail(orderNumber, email)
+  if (!order) return res.status(404).json({ ok: false, message: 'Not found' })
+  res.json({ ok: true, order })
+}) */
+
+router.post('/track', findByNumberAndEmail);
+
 
 module.exports = router;

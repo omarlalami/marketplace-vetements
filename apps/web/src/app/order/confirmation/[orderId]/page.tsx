@@ -150,7 +150,7 @@ export default function ConfirmationOrderPage() {
                   {order.shop_orders.map((shopOrder, i) => (
                     <div key={i} className="border rounded-md p-4">
                       <h4 className="font-semibold mb-3">
-                        {shopOrder.shop_name}
+                        Boutique : {shopOrder.shop_name}
                       </h4>
                       {shopOrder.items.map((item, j) => (
                         <div
@@ -203,11 +203,11 @@ export default function ConfirmationOrderPage() {
                 </div>
                 <div className="flex justify-between">
                   <span>Livraison</span>
-                  <span>{formatPrice(shipping)} DZD</span>
+                  <span>{/* {formatPrice(shipping)} DZD */}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>TVA</span>
-                  <span>{formatPrice(tax)} DZD</span>
+                  <span>{/* {formatPrice(tax)} DZD  */}</span>
                 </div>
                 <div className="flex justify-between font-semibold text-lg">
                   <span>Total</span>

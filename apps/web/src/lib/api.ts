@@ -299,6 +299,26 @@ class ApiClient {
     return response.data;
   }
 
+/*   async getOrderTracking(orderNumber: string, email: string) {
+    const response = await this.client.get(`/orders/track?orderNumber=${orderNumber}&email=${email}`)
+    return response.data;
+  } */
+  async getOrderTracking(orderNumber: string, email: string) {
+    try {
+      const response = await this.client.post('/orders/track', { orderNumber, email });
+      console.log('api client recoit : ', JSON.stringify(response.data, null, 2));
+      return { ok: true, order: response.data.order };
+    } catch (error: any) {
+      // AxiosError a une propriété response contenant le code HTTP
+      if (error.response && error.response.status === 404) {
+        return { ok: false, message: 'Commande introuvable' };
+      }
+
+      // Autres erreurs (réseau, serveur, etc.)
+      console.error('Erreur API tracking:', error);
+      return { ok: false, message: 'Erreur serveur, veuillez réessayer plus tard.' };
+    }
+  }
 
   // Attrbiutes
   // ⚡ Récupérer les attributs (avec leurs valeurs)

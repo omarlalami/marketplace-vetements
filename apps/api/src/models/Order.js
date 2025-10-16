@@ -763,6 +763,73 @@ static async createOrder(userId, payload) {
       client.release();
     }
   }
+
+
+  static async findByNumberAndEmail(orderNumber, email) {
+    const query = `
+      SELECT 
+        o.id AS order_id,
+        o.order_number,
+        o.status AS order_status,
+        o.payment_status,
+        o.payment_method,
+        o.total_amount,
+        o.shipping_address,
+        o.created_at AS order_date,
+        u.email,
+        up.first_name,
+        up.last_name
+      FROM orders o
+      LEFT JOIN users u ON o.user_id = u.id
+      LEFT JOIN user_profiles up ON up.user_id = u.id
+      WHERE o.order_number = $1
+        AND (u.email = $2 OR o.shipping_address->>'email' = $2)
+      LIMIT 1
+    `;
+
+    const { rows } = await pool.query(query, [orderNumber, email]);
+
+    if (rows.length === 0) return null;
+
+    const order = rows[0];
+
+    // Récupérer les sous-commandes et les articles associés
+    const subOrdersQuery = `
+      SELECT 
+        so.id AS shop_order_id,
+        s.name AS shop_name,
+        s.slug AS shop_slug,
+        so.status,
+        so.tracking_number,
+        so.estimated_delivery_date,
+        so.total_amount
+      FROM shop_orders so
+      JOIN shops s ON s.id = so.shop_id
+      WHERE so.order_id = $1
+    `;
+    const { rows: subOrders } = await pool.query(subOrdersQuery, [order.order_id]);
+
+    for (const subOrder of subOrders) {
+      const itemsQuery = `
+        SELECT 
+          oi.id AS item_id,
+          oi.product_name,
+          oi.product_image_url,
+          oi.variant_attributes,
+          oi.quantity,
+          oi.unit_price,
+          oi.subtotal
+        FROM order_items oi
+        WHERE oi.shop_order_id = $1
+      `;
+      const { rows: items } = await pool.query(itemsQuery, [subOrder.shop_order_id]);
+      subOrder.items = items;
+    }
+
+    order.shop_orders = subOrders;
+    return order;
+  }
+
 }
 
 module.exports = Order;
