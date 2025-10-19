@@ -129,13 +129,13 @@ const handleTrack = async () => {
             <CardContent className="space-y-6">
               {/* --- Statut --- */}
               <div className="flex flex-col items-start gap-2">
-                <div className="flex items-center gap-2">
+                {/*<div className="flex items-center gap-2">
                   <PackageCheck className="w-5 h-5 text-green-600" />
                   <p>
                     Statut de la commande :{' '}
-                    <span className="font-semibold">{/* {order.order_status} */} Recu</span>
+                    <span className="font-semibold"> {order.order_status} Recu</span>  
                   </p>
-                </div>
+                </div>*/}
                 <div className="flex items-center gap-2">
                   <Clock className="w-5 h-5 text-blue-500" />
                   <p>
@@ -158,7 +158,7 @@ const handleTrack = async () => {
                         Boutique : {shop.shop_name}
                     </p>
                     <p className="text-sm text-gray-600">
-                        Statut : <span className="font-medium"> Recu {/* {shop.status} */}</span>
+                        {/*Statut : <span className="font-medium"> Recu  {shop.status} </span>*/}
                     </p>
                     </div>
 <Separator />

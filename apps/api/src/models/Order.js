@@ -640,7 +640,7 @@ static async createOrder(userId, payload) {
    * Récupérer les commandes d'un utilisateur
    */
   // Récupérer les commandes d'un utilisateur
-  static async findByUserId(userId, filters = {}) {
+/*   static async findByUserId(userId, filters = {}) {
     let query = `
       SELECT 
         o.*,
@@ -684,50 +684,50 @@ static async createOrder(userId, payload) {
     
     const result = await pool.query(query, params);
     return result.rows;
-  }
+  } */
   
   // Récupérer les commandes d'un shop (pour le vendeur)
-  static async findByShopId(shopId, filters = {}) {
-    let query = `
-      SELECT 
-        o.*,
-        up.first_name || ' ' || up.last_name as customer_name,
-        u.email as customer_email,
-        (
-          SELECT json_agg(
-            json_build_object(
-              'id', oi.id,
-              'product_name', oi.product_name,
-              'product_image_url', oi.product_image_url,
-              'variant_attributes', oi.variant_attributes,
-              'quantity', oi.quantity,
-              'unit_price', oi.unit_price,
-              'subtotal', oi.subtotal
-            )
+static async findByShopId(shopId) {
+  let query = `
+    SELECT 
+      so.*,
+      o.order_number,
+      o.payment_status,
+      o.payment_method,
+      o.created_at AS global_order_created_at,
+      o.shipping_address,
+      o.notes,
+      COALESCE(up.first_name || ' ' || up.last_name, 'Guest') AS customer_name,
+      COALESCE(u.email, o.shipping_address->>'email') AS customer_email,
+      (
+        SELECT json_agg(
+          json_build_object(
+            'id', oi.id,
+            'product_name', oi.product_name,
+            'product_image_url', oi.product_image_url,
+            'variant_attributes', oi.variant_attributes,
+            'quantity', oi.quantity,
+            'unit_price', oi.unit_price,
+            'subtotal', oi.subtotal
           )
-          FROM order_items oi
-          WHERE oi.order_id = o.id
-        ) as items
-      FROM orders o
-      JOIN users u ON o.user_id = u.id
-      LEFT JOIN user_profiles up ON u.id = up.user_id
-      WHERE o.shop_id = $1
-    `;
-    
-    const params = [shopId];
-    let paramIndex = 2;
-    
-    if (filters.status) {
-      query += ` AND o.status = $${paramIndex}`;
-      params.push(filters.status);
-      paramIndex++;
-    }
-    
-    query += ` ORDER BY o.created_at DESC`;
-    
-    const result = await pool.query(query, params);
-    return result.rows;
-  }
+        )
+        FROM order_items oi
+        WHERE oi.shop_order_id = so.id
+      ) AS items
+    FROM shop_orders so
+    JOIN orders o ON so.order_id = o.id
+    LEFT JOIN users u ON o.user_id = u.id
+    LEFT JOIN user_profiles up ON u.id = up.user_id
+    WHERE so.shop_id = $1
+    ORDER BY so.created_at DESC
+  `;
+
+  const params = [shopId];
+
+  const result = await pool.query(query, params);
+  return result.rows;
+}
+
   
   // Mettre à jour le statut d'une commande
   static async updateStatus(orderId, newStatus, comment = null, updatedBy = null) {
@@ -765,6 +765,7 @@ static async createOrder(userId, payload) {
   }
 
 
+  // Track une commande par orderNumber & mail
   static async findByNumberAndEmail(orderNumber, email) {
     const query = `
       SELECT 

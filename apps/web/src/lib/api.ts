@@ -139,8 +139,7 @@ class ApiClient {
       attributeValueIds: string[]
     }>
   }) {
-    console.log("create product donne envoyer de l api", JSON.stringify(data, null, 2))
-
+    //console.log("create product donne envoyer de l api", JSON.stringify(data, null, 2))
     const response = await this.client.post('/products', data)
     return response.data
   }
@@ -280,10 +279,11 @@ class ApiClient {
     }
   }
 
-  async getMyOrders(params?: { status?: string; limit?: number }) {
+  // Récupérer les commandes de l'utilisateur
+/*   async getMyOrders(params?: { status?: string; limit?: number }) {
     const response = await this.client.get('/orders/my-orders', { params })
     return response.data
-  }
+  } */
 
   //tester ok depuis ConfirmationOrderPage
   //a suuprimer
@@ -294,15 +294,13 @@ class ApiClient {
 
   // Récupérer une commande par ordernumber
   //tester ok depuis ConfirmationOrderPage
+  // utiliser uniquement dans confirmation page 
   async getOrderByOrderNumber(orderNumber: string) {
     const response = await this.client.get(`/orders/${orderNumber}`);
     return response.data;
   }
 
-/*   async getOrderTracking(orderNumber: string, email: string) {
-    const response = await this.client.get(`/orders/track?orderNumber=${orderNumber}&email=${email}`)
-    return response.data;
-  } */
+  //tester ok depuis order track
   async getOrderTracking(orderNumber: string, email: string) {
     try {
       const response = await this.client.post('/orders/track', { orderNumber, email });
@@ -317,6 +315,25 @@ class ApiClient {
       // Autres erreurs (réseau, serveur, etc.)
       console.error('Erreur API tracking:', error);
       return { ok: false, message: 'Erreur serveur, veuillez réessayer plus tard.' };
+    }
+  }
+
+
+  async getOrdersByShop(shopId: string) {
+    try {
+      const response = await this.client.get(`/orders/shop/${shopId}`)
+      //console.log('API getOrdersByShop recu : ', JSON.stringify(response.data, null, 2))
+      //    console.log("erreur dans getOrdersByShop api call  ? ??? ? ? ? ? ? ")
+
+      return response.data
+    } catch (error: any) {
+      // AxiosError a une propriété response contenant le code HTTP
+      if (error.response && error.response.status === 404) {
+        return { ok: false, message: 'Aucune commande trouvée pour cette boutique' };
+      }
+
+      console.error('❌ Erreur API getOrdersByShop:', error.response?.data || error.message)
+      return { ok: false, message: 'Erreur lors du chargement des produits.' }
     }
   }
 

@@ -90,7 +90,7 @@ router.post('/', optionalAuth, async (req, res) => {
 });
 
 // Récupérer les commandes de l'utilisateur
-router.get('/my-orders', authenticateToken, async (req, res) => {
+/* router.get('/my-orders', authenticateToken, async (req, res) => {
   try {
     const { status, limit } = req.query;
     
@@ -111,7 +111,7 @@ router.get('/my-orders', authenticateToken, async (req, res) => {
       message: 'Erreur lors de la récupération des commandes' 
     });
   }
-});
+}); */
 
 // Récupérer une commande par ID
 //a supprimer
@@ -138,6 +138,7 @@ router.get('/my-orders', authenticateToken, async (req, res) => {
 }); */
 
 // Récupérer une commande par orderNumber
+// utiliser dans confirmation page
 router.get('/:orderNumber', optionalAuth, async (req, res) => {
   try {
     const { orderNumber } = req.params;
@@ -168,7 +169,30 @@ router.get('/:orderNumber', optionalAuth, async (req, res) => {
   res.json({ ok: true, order })
 }) */
 
+// Track une commande par orderNumber & mail
 router.post('/track', findByNumberAndEmail);
+
+
+// GET /api/orders/shop/:shopId?status=pending
+router.get('/shop/:shopId', async (req, res) => {
+  try {
+    const { shopId } = req.params;
+
+    const orders = await Order.findByShopId(shopId);
+
+/*     if (!orders || orders.length === 0) {
+      return res.status(404).json({ message: 'Aucune commande trouvée pour cette boutique.' });
+    } */
+
+    //console.log("erreur dans ordder route  ? ??? ? ? ? ? ? ")
+
+    res.json(orders);
+  } catch (error) {
+    console.error('Erreur dans GET /orders/shop/:shopId:', error);
+    res.status(500).json({ message: 'Erreur interne du serveur' });
+  }
+});
+
 
 
 module.exports = router;

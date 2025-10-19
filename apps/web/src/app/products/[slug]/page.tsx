@@ -67,7 +67,7 @@ export default function ProductDetailPage() {
       try {
         setLoading(true)
         const data = await apiClient.getProduct(productSlug)
-        console.log('🟢 produits recu : ', JSON.stringify(data, null, 2))
+        //console.log('🟢 produits recu : ', JSON.stringify(data, null, 2))
         setProduct(data.product)
 
         if (data.product.images?.length > 0) {

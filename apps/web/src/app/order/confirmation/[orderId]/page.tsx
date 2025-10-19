@@ -44,6 +44,7 @@ interface Order {
     postal_code: string
     country: string
     phone: string
+    email: string
   }
   payment_status: string
   created_at: string
@@ -69,7 +70,7 @@ export default function ConfirmationOrderPage() {
     const fetchOrder = async () => {
       try {
         const res = await apiClient.getOrderByOrderNumber(orderId as string)
-        console.log('✅ Order found RES:', JSON.stringify(res, null, 2))
+        //console.log('✅ Order found RES:', JSON.stringify(res, null, 2))
         setOrder(res.order)
       } catch (error: any) {
         if (error.response && error.response.status === 404) {
@@ -232,6 +233,9 @@ export default function ConfirmationOrderPage() {
                 <p>{order.shipping_address.country}</p>
                 <p className="text-sm text-muted-foreground mt-1">
                   Téléphone : {order.shipping_address.phone}
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Email : {order.shipping_address.email}
                 </p>
               </div>
             </div>
