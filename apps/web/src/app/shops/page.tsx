@@ -30,7 +30,7 @@ export default function ShopsPage() {
         const data = await apiClient.getAllShops() // limite large
         setShops(data)
         setFilteredShops(data)
-        console.log('Tout les shopp recu : ', JSON.stringify(data, null, 2))
+        //console.log('Tout les shopp recu : ', JSON.stringify(data, null, 2))
 
       } catch (error) {
         console.error('Erreur lors du chargement des boutiques :', error)

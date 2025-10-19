@@ -44,6 +44,7 @@ interface Order {
     postal_code: string
     country: string
     phone: string
+    email: string
   }
   payment_status: string
   created_at: string
@@ -69,7 +70,7 @@ export default function ConfirmationOrderPage() {
     const fetchOrder = async () => {
       try {
         const res = await apiClient.getOrderByOrderNumber(orderId as string)
-        console.log('✅ Order found RES:', JSON.stringify(res, null, 2))
+        //console.log('✅ Order found RES:', JSON.stringify(res, null, 2))
         setOrder(res.order)
       } catch (error: any) {
         if (error.response && error.response.status === 404) {
@@ -150,7 +151,7 @@ export default function ConfirmationOrderPage() {
                   {order.shop_orders.map((shopOrder, i) => (
                     <div key={i} className="border rounded-md p-4">
                       <h4 className="font-semibold mb-3">
-                        {shopOrder.shop_name}
+                        Boutique : {shopOrder.shop_name}
                       </h4>
                       {shopOrder.items.map((item, j) => (
                         <div
@@ -203,11 +204,11 @@ export default function ConfirmationOrderPage() {
                 </div>
                 <div className="flex justify-between">
                   <span>Livraison</span>
-                  <span>{formatPrice(shipping)} DZD</span>
+                  <span>{/* {formatPrice(shipping)} DZD */}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>TVA</span>
-                  <span>{formatPrice(tax)} DZD</span>
+                  <span>{/* {formatPrice(tax)} DZD  */}</span>
                 </div>
                 <div className="flex justify-between font-semibold text-lg">
                   <span>Total</span>
@@ -232,6 +233,9 @@ export default function ConfirmationOrderPage() {
                 <p>{order.shipping_address.country}</p>
                 <p className="text-sm text-muted-foreground mt-1">
                   Téléphone : {order.shipping_address.phone}
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Email : {order.shipping_address.email}
                 </p>
               </div>
             </div>

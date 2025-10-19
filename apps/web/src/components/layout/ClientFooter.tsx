@@ -17,9 +17,6 @@ export function ClientFooter() {
             <div>
               <h4 className="font-semibold mb-4">Découvrir</h4>
               <div className="space-y-2">
-                <Link href="/products" className="block text-gray-400 hover:text-white transition-colors">
-                  Tous les produits
-                </Link>
                 <Link href="/shops" className="block text-gray-400 hover:text-white transition-colors">
                   Créateurs
                 </Link>
@@ -41,11 +38,11 @@ export function ClientFooter() {
             <div>
               <h4 className="font-semibold mb-4">Support</h4>
               <div className="space-y-2">
-                <a href="#" className="block text-gray-400 hover:text-white transition-colors">
-                  Aide
+                <a href="/order/track" className="block text-gray-400 hover:text-white transition-colors">
+                  Statut de la commande
                 </a>
-                <a href="#" className="block text-gray-400 hover:text-white transition-colors">
-                  Contact
+                <a href="/about" className="block text-gray-400 hover:text-white transition-colors">
+                  A propos de nous
                 </a>
               </div>
             </div>
