@@ -74,7 +74,6 @@ class ApiClient {
 
   async getCategories() {
     const response = await this.client.get('/categories')
-    //console.log(response.data)
     return response.data
   }
 
@@ -99,6 +98,8 @@ class ApiClient {
     return response.data
   }
   
+  //a voir si c'est utile ? ou si on utilise getShop(slug)
+  //a supprimer ?
   async getShopForEdit(id: string) {
     const response = await this.client.get(`/shops/edit/${id}`)
     return response.data
@@ -139,7 +140,6 @@ class ApiClient {
       attributeValueIds: string[]
     }>
   }) {
-    //console.log("create product donne envoyer de l api", JSON.stringify(data, null, 2))
     const response = await this.client.post('/products', data)
     return response.data
   }
@@ -163,8 +163,6 @@ class ApiClient {
   }) {
     try {
       const response = await this.client.get('/products/public', { params })
-      console.log('🟢 produits recu : ', JSON.stringify(response, null, 2))
-
       return response.data
     } catch (error: any) {
       console.error('❌ Erreur API getProducts:', error.response?.data || error.message)
@@ -189,20 +187,11 @@ class ApiClient {
     return response.data
   }
 
-  //  depuis dashboard\products\page.tsx ProductsPage
-  // Récupérer les produits d'une boutique spécifique (pour le dashboard)
-  // tester ok
-  //a suprimer car ca se repete avec getProducts quiu propose deja de filtrer avec shop_slug
-/*   async getShopProducts(shopId: string) {
-    const response = await this.client.get(`/products/shop/${shopId}/products`)
-    console.log(response.data)
-    return response.data
-  } */
-
   //tester ok depuis EditProductPage
+  //a voir si c'est utile ? ou si on utilise getProduct(slug)
+  //a supprimer ?
   async getProductForEdit(id: string) {
     const response = await this.client.get(`/products/${id}/edit`)
-    console.log(response.data)
     return response.data
   }
 
@@ -217,14 +206,12 @@ class ApiClient {
       variants?: VariantInput[] 
     }
   ) {
-    console.log("update product donne envoyer de l api", JSON.stringify(data, null, 2))
     const response = await this.client.put(`/products/${id}`, data)
     return response.data
   }
 
   // tester ok
   async deleteProductImage(productId: string, imageKey: string) {
-    //console.log("donne a envoyer depuis api client delete imge product" + productId + "     " + encodeURIComponent(imageKey));
     const response = await this.client.delete(`/products/${productId}/images/${encodeURIComponent(imageKey)}`)
     return response.data
   }
@@ -270,7 +257,6 @@ class ApiClient {
       if (error.response && error.response.data) {
         return error.response.data
       }
-
       // 🔹 Sinon, on renvoie une erreur générique
       return {
         ok: false,
@@ -280,16 +266,10 @@ class ApiClient {
   }
 
   // Récupérer les commandes de l'utilisateur
+  // activer en v2
 /*   async getMyOrders(params?: { status?: string; limit?: number }) {
     const response = await this.client.get('/orders/my-orders', { params })
     return response.data
-  } */
-
-  //tester ok depuis ConfirmationOrderPage
-  //a suuprimer
-/*   async getOrderById(orderId: string) {
-    const response = await this.client.get(`/orders/${orderId}`);
-    return response.data;
   } */
 
   // Récupérer une commande par ordernumber
@@ -304,7 +284,6 @@ class ApiClient {
   async getOrderTracking(orderNumber: string, email: string) {
     try {
       const response = await this.client.post('/orders/track', { orderNumber, email });
-      console.log('api client recoit : ', JSON.stringify(response.data, null, 2));
       return { ok: true, order: response.data.order };
     } catch (error: any) {
       // AxiosError a une propriété response contenant le code HTTP
@@ -322,9 +301,6 @@ class ApiClient {
   async getOrdersByShop(shopId: string) {
     try {
       const response = await this.client.get(`/orders/shop/${shopId}`)
-      //console.log('API getOrdersByShop recu : ', JSON.stringify(response.data, null, 2))
-      //    console.log("erreur dans getOrdersByShop api call  ? ??? ? ? ? ? ? ")
-
       return response.data
     } catch (error: any) {
       // AxiosError a une propriété response contenant le code HTTP
@@ -341,7 +317,6 @@ class ApiClient {
   // ⚡ Récupérer les attributs (avec leurs valeurs)
   async getAttributes() {
     const response = await this.client.get('/attributes')
-  //  console.log(response.data)
     return response.data
   }
 

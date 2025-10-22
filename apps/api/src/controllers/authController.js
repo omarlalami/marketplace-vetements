@@ -27,9 +27,6 @@ const register = async (req, res) => {
     }
 
     const user = await User.create({ email, password, firstName, lastName });
-    //const token = generateToken(user.id);
-
-    //res.cookie('auth-store', token, cookieOptions);
 
     res.status(201).json({
       message: 'Compte créé avec succès',

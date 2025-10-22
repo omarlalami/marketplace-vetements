@@ -6,12 +6,9 @@ import {
   Home,
   Store,
   Package,
-  ShoppingBag,
-  Settings,
-  BarChart3
+  ShoppingBag
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
 
 const navigation = [
   { name: 'Accueil', href: '/dashboard', icon: Home },

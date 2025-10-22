@@ -7,8 +7,8 @@ const authenticateToken = async (req, res, next) => {
 console.log("🔍 BODY:", req.body)
 console.log("🔍 PARAMS:", req.params)
 console.log("🔍 QUERY:", req.query)
-console.log("🔍 COOKIES:", req.cookies) */
-//console.log("🔍 QUERY:", req.user)
+console.log("🔍 COOKIES:", req.cookies) 
+console.log("🔍 QUERY:", req.user)*/
   const token =  req.cookies["auth-store"];
 
   if (!token) {
@@ -24,14 +24,6 @@ console.log("🔍 COOKIES:", req.cookies) */
     }
 
     req.user = { userId: user.id, email: user.email };
-//console.log("🔍 QUERY:", req.user)
-
-/* console.log("🔍 HEADERS:", req.headers)
-console.log("🔍 BODY:", req.body)
-console.log("🔍 PARAMS:", req.params)
-console.log("🔍 QUERY:", req.query)
-console.log("🔍 COOKIES:", req.cookies) */
-
     next();
     
   } catch (error) {

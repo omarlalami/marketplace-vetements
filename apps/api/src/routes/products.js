@@ -132,10 +132,6 @@ router.get('/:slug', optionalAuth, async (req, res) => {
     product.images = await ImageService.getProductImages(product.id);
 
     res.json({ product });
-   /*  const images = await ImageService.getProductImages(req.params.id);
-
-    console.log('info Produit envoyer ', JSON.stringify({ ...product, images }, null, 2))
-    res.json({ ...product, images }); */
   } catch (error) {
     console.error('Erreur récupération produit:', error);
     res.status(500).json({ error: 'Erreur lors de la récupération du produit' });
