@@ -3,6 +3,10 @@
 -- Extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
+-- =========================================
+-- Users
+-- =========================================
+
 -- Table des utilisateurs
 CREATE TABLE users (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -43,7 +47,11 @@ CREATE TABLE shops (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Catégories de produits
+-- =========================================
+-- Products
+-- =========================================
+
+-- Categories
 CREATE TABLE categories (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   name VARCHAR(100) NOT NULL,
@@ -53,7 +61,20 @@ CREATE TABLE categories (
   is_active BOOLEAN DEFAULT TRUE
 );
 
--- Produits
+-- Attributes
+CREATE TABLE attributes (
+  id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  name VARCHAR(50) UNIQUE NOT NULL -- ex: size, color
+);
+
+CREATE TABLE attribute_values (
+	id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  attribute_id BIGINT NOT NULL,
+  value VARCHAR(50) NOT NULL, -- ex: L, XL, Red
+  FOREIGN KEY (attribute_id) REFERENCES attributes(id) ON DELETE CASCADE
+);
+
+-- Products & vriants
 CREATE TABLE products (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   name VARCHAR(100) NOT NULL,
@@ -65,18 +86,6 @@ CREATE TABLE products (
   is_active BOOLEAN DEFAULT TRUE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE attributes (
-    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    name VARCHAR(50) UNIQUE NOT NULL -- ex: size, color
-);
-
-CREATE TABLE attribute_values (
-	id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-  attribute_id BIGINT NOT NULL,
-  value VARCHAR(50) NOT NULL, -- ex: L, XL, Red
-  FOREIGN KEY (attribute_id) REFERENCES attributes(id) ON DELETE CASCADE
 );
 
 CREATE TABLE product_variants (
@@ -113,11 +122,34 @@ CREATE INDEX idx_shops_slug ON shops(slug);
 CREATE INDEX idx_products_slug ON products(slug);
 CREATE INDEX idx_categories_slug ON categories(slug);
 
+-- Styles
+CREATE TABLE styles (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name VARCHAR(100) NOT NULL UNIQUE,
+  slug VARCHAR(100) UNIQUE NOT NULL,
+  description TEXT,
+  icon_url TEXT,
+  is_active BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE product_styles (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+  style_id UUID NOT NULL REFERENCES styles(id) ON DELETE CASCADE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(product_id, style_id) -- Un style par produit (une seule fois)
+);
+
+CREATE INDEX idx_styles_slug ON styles(slug);
+CREATE INDEX idx_product_styles_product_id ON product_styles(product_id);
+CREATE INDEX idx_product_styles_style_id ON product_styles(style_id);
 
 
 -- =========================================
--- COMMANDE GLOBALE (client)
+-- GLOBAL ORDER (client)
 -- =========================================
+
 CREATE TABLE orders (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   order_number VARCHAR(50) UNIQUE NOT NULL, -- Ex: ORD-2024-001234
@@ -145,9 +177,7 @@ CREATE TABLE orders (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- =========================================
 -- SOUS-COMMANDES PAR VENDEUR
--- =========================================
 CREATE TABLE shop_orders (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   order_id UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
@@ -171,7 +201,7 @@ CREATE TABLE order_items (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   shop_order_id UUID NOT NULL REFERENCES shop_orders(id) ON DELETE CASCADE,
   product_id UUID NOT NULL REFERENCES products(id),
-  product_variant_id UUID NOT NULL REFERENCES product_variants(id),
+  product_variant_id UUID NOT NULL REFERENCES product_variants(id) ON DELETE RESTRICT,
   
   quantity INTEGER NOT NULL CHECK (quantity > 0),
   unit_price DECIMAL(10,2) NOT NULL, -- Prix unitaire au moment de la commande
@@ -184,14 +214,6 @@ CREATE TABLE order_items (
   
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-
-ALTER TABLE order_items
-  DROP CONSTRAINT IF EXISTS order_items_product_variant_id_fkey,
-  ADD CONSTRAINT order_items_product_variant_id_fkey
-  FOREIGN KEY (product_variant_id)
-  REFERENCES product_variants(id)
-  ON DELETE RESTRICT;
-
 
 -- Historique des statuts de commande
 CREATE TABLE order_status_history (
@@ -230,8 +252,8 @@ CREATE TABLE cart_items (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   UNIQUE(cart_id, product_variant_id) -- Un même variant ne peut être qu'une fois dans le panier
-); */
+);
 
-/* CREATE INDEX idx_cart_user_id ON cart(user_id);
+CREATE INDEX idx_cart_user_id ON cart(user_id);
 CREATE INDEX idx_cart_items_cart_id ON cart_items(cart_id);
 CREATE INDEX idx_cart_items_shop_id ON cart_items(shop_id); */
