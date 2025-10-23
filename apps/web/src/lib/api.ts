@@ -20,17 +20,19 @@ class ApiClient {
 
 
   // Interceptor to add token from cookie
+  // a supprimer , on utilise les cookies 
+  // supprimer tout ce qui est header
   this.client.interceptors.request.use((config) => {
     if (typeof window !== 'undefined') {
       // Parse cookies to get auth-store
       const cookieString = document.cookie
-        .split('; ')
-        .find((row) => row.startsWith('auth-store='));
+      .split('; ')
+      .find((row) => row.startsWith('auth-store='));
+
       if (cookieString) {
         try {
-          const authStore = JSON.parse(cookieString.split('=')[1]);
-          const token = authStore.state?.token;
-          console.log('🔍 ApiClient - Token from cookie:', token); // Debug log
+          const token = cookieString.split('=')[1];
+          console.log('🔍 ApiClient - Token from cookie:', token);
           if (token) {
             config.headers.Authorization = `Bearer ${token}`;
           }
