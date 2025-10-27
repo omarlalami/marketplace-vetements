@@ -54,8 +54,7 @@ INSERT INTO categories (name, slug, description, parent_id) VALUES ('Gants', 'ga
 INSERT INTO attributes (name)
 VALUES
 ('Taille'),
-('Couleur'),
-('Pointure');
+('Couleur');
 
 -- Tailles (pour vêtements)
 INSERT INTO attribute_values (attribute_id, value)
@@ -79,7 +78,7 @@ VALUES
 ((SELECT id FROM attributes WHERE name = 'Couleur'), 'Beige');
 
 -- Pointures (pour chaussures)
-INSERT INTO attribute_values (attribute_id, value)
+/* INSERT INTO attribute_values (attribute_id, value)
 VALUES
 ((SELECT id FROM attributes WHERE name = 'Pointure'), '38'),
 ((SELECT id FROM attributes WHERE name = 'Pointure'), '39'),
@@ -87,7 +86,7 @@ VALUES
 ((SELECT id FROM attributes WHERE name = 'Pointure'), '41'),
 ((SELECT id FROM attributes WHERE name = 'Pointure'), '42'),
 ((SELECT id FROM attributes WHERE name = 'Pointure'), '43'),
-((SELECT id FROM attributes WHERE name = 'Pointure'), '44');
+((SELECT id FROM attributes WHERE name = 'Pointure'), '44'); */
 
 -- ============================================================
 -- Insertion des styles
