@@ -17,6 +17,7 @@
     "setup-db": "pnpm migrate && pnpm seed",
     "migrate": "pnpm --filter api migrate",
     "seed": "pnpm --filter api seed",
+    "clean-db": "pnpm --filter api clean",
 
     "clean": "shx rm -rf apps/api/node_modules apps/web/node_modules apps/web/.next",
     "//": "=== clean:all not to be used, only to delete node_module root if needed, generate an error to be ignored ===",
