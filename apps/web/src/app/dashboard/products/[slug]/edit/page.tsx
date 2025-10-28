@@ -15,6 +15,7 @@ import { apiClient } from '@/lib/api'
 import { ArrowLeft, Plus, X, Trash2, Save } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
+import { CategorySelect } from '@/components/ui/categorySelect'
 
 interface AttributeValue {
   id: string
@@ -286,11 +287,6 @@ export default function EditProductPage() {
     }
   }
 
-  const flatCategories = categories.flatMap((category: any) => [
-    category,
-    ...(category.children || [])
-  ])
-
   const getAvailableAttributes = (variant: Variant) => {
     const usedAttributeIds = variant.attributes.map(attr => attr.attribute_id)
     return attributes.filter(attr => !usedAttributeIds.includes(attr.id))
@@ -399,22 +395,12 @@ export default function EditProductPage() {
 
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div className="space-y-2">
-                      <Label>Catégorie</Label>
-                      <Select 
-                        value={formData.categoryId} 
-                        onValueChange={(value) => handleInputChange('categoryId', value)}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Choisir une catégorie" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {flatCategories.map((category: any) => (
-                            <SelectItem key={category.id} value={category.id}>
-                              {category.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <CategorySelect
+                        categories={categories}
+                        value={formData.categoryId}
+                        onChange={(v) => handleInputChange('categoryId', v)}
+                        placeholder="Choisir une catégorie"
+                      />
                     </div>
 
                    {/* A REMPLACER PAR SELECTION BOUTIQUE

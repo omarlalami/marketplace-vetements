@@ -8,12 +8,12 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { ImageUpload } from '@/components/ui/image-upload'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { apiClient } from '@/lib/api'
-import { ArrowLeft, Plus } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
+import { CategorySelect } from '@/components/ui/categorySelect'
 
 export default function CreateProductPage() {
   const [formData, setFormData] = useState({
@@ -22,7 +22,7 @@ export default function CreateProductPage() {
     shopId: '',
     categoryId: '',
     price: '',
-    stockQuantity :'',
+    stockQuantity: '',
   })
 
   const [shops, setShops] = useState<any[]>([])
@@ -47,6 +47,7 @@ export default function CreateProductPage() {
         setShops(shopsData.shops)
         setCategories(categoriesData.categories)
         setAttributes(attributesData.attributes)
+        console.log("categoriesData : ", JSON.stringify(categoriesData, null, 2))
       } catch (error) {
         console.error('Erreur chargement données:', error)
       }
@@ -198,20 +199,23 @@ export default function CreateProductPage() {
                     </Select>
                   </div>
 
+                  {/* ✅ Remplacement du sélecteur de catégorie */}
                   <div>
-                    <Label>Catégorie *</Label>
-                    <Select
+                    <CategorySelect
+                      categories={categories}
                       value={formData.categoryId}
-                      onValueChange={(v) => handleInputChange('categoryId', v)}
-                    >
-                      <SelectTrigger><SelectValue placeholder="Choisir" /></SelectTrigger>
-                      <SelectContent>
-                        {flatCategories.map((c: any) => (
-                          <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      onChange={(v) => handleInputChange('categoryId', v)}
+                      placeholder="Choisir une catégorie"
+                    />
                   </div>
+
+
+
+
+
+
+
+
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-2">
