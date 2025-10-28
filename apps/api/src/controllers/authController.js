@@ -9,10 +9,12 @@ const generateToken = (userId) => {
   );
 };
 
+const isProduction = process.env.NODE_ENV === 'production';
+
 const cookieOptions = {
   httpOnly: true,
-  secure: true, // secure seulement en prod
-  sameSite: true,
+  secure: isProduction, // secure true seulement en prod
+  sameSite: isProduction ? 'none' : 'lax', // 'none' en prod (cross-domain)
   // ⚠️ si API et front sont sur 2 domaines différents → utiliser "none" + secure: true
   maxAge: 1000 * 60 * 60 * 24 * 30 // 30 jours
 };
@@ -27,9 +29,6 @@ const register = async (req, res) => {
     }
 
     const user = await User.create({ email, password, firstName, lastName });
-    //const token = generateToken(user.id);
-
-    //res.cookie('auth-store', token, cookieOptions);
 
     res.status(201).json({
       message: 'Compte créé avec succès',
@@ -113,8 +112,8 @@ const logout = (req, res) => {
   try {
     res.clearCookie("auth-store", {
       httpOnly: true,
-      secure: true, // en prod → true, en dev → false si tu n’as pas https
-      sameSite: true, // si frontend et backend sont sur 2 domaines différents → "none"
+      secure: isProduction, // en prod → true, en dev → false si tu n’as pas https
+      sameSite: isProduction ? 'none' : 'lax', // si frontend et backend sont sur 2 domaines différents → "none"
     });
 
     res.status(200).json({ message: "Déconnexion réussie" });

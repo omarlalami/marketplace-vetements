@@ -119,7 +119,7 @@ export default function ProductDetailPage() {
     if (!product) return
 
     if (attributeTypes.length > 0 && attributeTypes.some((a) => !selectedAttributes[a])) {
-      alert('Veuillez sélectionner toutes les options avant d’ajouter au panier.')
+      alert('Veuillez sélectionner la Couleur/Pointure/Taille avant d’ajouter au panier.')
       return
     }
 

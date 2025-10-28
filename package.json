@@ -2,15 +2,31 @@
   "name": "marketplace-vetements",
   "private": true,
   "scripts": {
-    "dev": "concurrently \"pnpm dev:api\" \"pnpm dev:web\"",
+    "dev": "concurrently -n API,WEB -c green,blue \"pnpm dev:api\" \"pnpm dev:web\"",
     "dev:api": "pnpm --filter api dev",
     "dev:web": "pnpm --filter web dev",
+
     "build": "pnpm build:api && pnpm build:web",
+    "build:api": "pnpm --filter api build",
+    "build:web": "pnpm --filter web build",
+
+    "start": "concurrently -n API,WEB -c green,blue \"pnpm start:api\" \"pnpm start:web\"",
+    "start:api": "pnpm --filter api start",
+    "start:web": "pnpm --filter web start",
+
+    "setup-db": "pnpm migrate && pnpm seed",
     "migrate": "pnpm --filter api migrate",
     "seed": "pnpm --filter api seed",
-    "setup-db": "pnpm migrate && pnpm seed"
+    "populate": "pnpm --filter api populate",
+    "clean-db": "pnpm --filter api clean",
+
+    "clean": "shx rm -rf apps/api/node_modules apps/web/node_modules apps/web/.next",
+    "//": "=== clean:all not to be used, only to delete node_module root if needed, generate an error to be ignored ===",
+    "clean:all": "pnpm clean && shx rm -rf node_modules"
+
   },
   "devDependencies": {
-    "concurrently": "^8.2.0"
+    "concurrently": "^8.2.0",
+    "shx": "^0.4.0"
   }
 }

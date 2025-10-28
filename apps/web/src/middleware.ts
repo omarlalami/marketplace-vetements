@@ -62,7 +62,15 @@ export function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL("/login", request.url));
     }
 
-    console.log('✅ Access token present, letting backend validate it')
+    // Le cookie contient directement le token JWT
+    const token = authCookie.value;
+
+    if (!token || token.trim() === '') {
+      console.log("❌ Empty token, redirecting to /login");
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
+
+    console.log('✅ Token present:', token.substring(0, 20) + '...');
 
   }
 

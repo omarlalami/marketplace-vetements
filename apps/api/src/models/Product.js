@@ -534,7 +534,6 @@ class Product {
       const { minioClient } = require('../config/minio');
       for (const image of imagesResult.rows) {
         try {
-          console.log(' donne a supprimer : ', JSON.stringify(image, null, 2))
           const fileName = image.object_name;
           await minioClient.removeObject('products', fileName);
           console.log(`🗑️ Image supprimée de MinIO: ${fileName}`);

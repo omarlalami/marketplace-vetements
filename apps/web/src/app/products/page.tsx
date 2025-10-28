@@ -1,5 +1,6 @@
 'use client'
 
+import { Suspense } from 'react'
 import { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
@@ -44,7 +45,8 @@ interface Filters {
   sortBy: string
 }
 
-export default function ProductsPage() {
+// Composant qui utilise useSearchParams (doit être dans Suspense)
+function ProductsContent() {
   const searchParams = useSearchParams()
   const [products, setProducts] = useState<Product[]>([])
   const [categories, setCategories] = useState([])
@@ -60,58 +62,56 @@ export default function ProductsPage() {
     sortBy: searchParams.get('sort') || 'newest'
   })
 
-// 🔹 Charger les produits et catégories une seule fois ou quand certains filtres changent
-useEffect(() => {
-  const fetchData = async () => {
-    try {
-      setLoading(true)
+  // Charger les produits et catégories . On ne recharge les données que si les filtres changent (sauf sortBy)
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true)
 
-      const [productsData, categoriesData] = await Promise.all([
-        apiClient.getProducts({
-          search: filters.search || undefined,
-          slug: filters.category || undefined,
-          minPrice: filters.minPrice ? parseFloat(filters.minPrice) : undefined,
-          maxPrice: filters.maxPrice ? parseFloat(filters.maxPrice) : undefined,
-        }),
-        apiClient.getCategories(),
-      ])
+        const [productsData, categoriesData] = await Promise.all([
+          apiClient.getProducts({
+            search: filters.search || undefined,
+            slug: filters.category || undefined,
+            minPrice: filters.minPrice ? parseFloat(filters.minPrice) : undefined,
+            maxPrice: filters.maxPrice ? parseFloat(filters.maxPrice) : undefined,
+          }),
+          apiClient.getCategories(),
+        ])
 
-      setProducts(productsData.products)
-      setCategories(categoriesData.categories)
-    } catch (error) {
-      console.error('Erreur chargement produits:', error)
-    } finally {
-      setLoading(false)
+        setProducts(productsData.products)
+        setCategories(categoriesData.categories)
+      } catch (error) {
+        console.error('Erreur chargement produits:', error)
+      } finally {
+        setLoading(false)
+      }
     }
-  }
+    fetchData()
+  }, [filters.search, filters.category, filters.minPrice, filters.maxPrice])
 
-  // ✅ On ne recharge les données que si les filtres changent (sauf sortBy)
-  fetchData()
-}, [filters.search, filters.category, filters.minPrice, filters.maxPrice])
+  // Trier les produits localement
+  useEffect(() => {
+    setProducts(prevProducts => {
+      const sorted = [...prevProducts]
 
-// 🔹 Trier les produits localement
-useEffect(() => {
-  setProducts(prevProducts => {
-    const sorted = [...prevProducts]
+      switch (filters.sortBy) {
+        case 'price-asc':
+          sorted.sort((a, b) => (a.min_price || 0) - (b.min_price || 0))
+          break
+        case 'price-desc':
+          sorted.sort((a, b) => (b.min_price || 0) - (a.min_price || 0))
+          break
+        case 'name':
+          sorted.sort((a, b) => a.name.localeCompare(b.name))
+          break
+        case 'newest':
+        default:
+          sorted.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      }
 
-    switch (filters.sortBy) {
-      case 'price-asc':
-        sorted.sort((a, b) => (a.min_price || 0) - (b.min_price || 0))
-        break
-      case 'price-desc':
-        sorted.sort((a, b) => (b.min_price || 0) - (a.min_price || 0))
-        break
-      case 'name':
-        sorted.sort((a, b) => a.name.localeCompare(b.name))
-        break
-      case 'newest':
-      default:
-        sorted.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-    }
-
-    return sorted
-  })
-}, [filters.sortBy])
+      return sorted
+    })
+  }, [filters.sortBy])
 
   const handleFilterChange = (key: keyof Filters, value: string) => {
     setFilters(prev => ({ ...prev, [key]: value }))
@@ -121,12 +121,12 @@ useEffect(() => {
     const num = typeof price === 'string' ? parseFloat(price) : price;
     
     if (isNaN(num)) return '0';
-    
+
     // Si c'est un nombre entier, pas de décimales
     if (num === Math.floor(num)) {
       return num.toString();
     }
-    
+
     // Sinon, afficher avec 2 décimales
     return num.toFixed(2);
   }
@@ -174,7 +174,6 @@ useEffect(() => {
   return (
     <ClientLayout>
     <div className="min-h-screen bg-gray-50">
-
       <main className="container mx-auto px-4 py-8">
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Sidebar filtres */}
@@ -358,7 +357,7 @@ useEffect(() => {
                             </div>
                           </div>
                         )}
-                        
+
                         {/* Badge prix */}
                         {/* {product.price && (
                           <div className="absolute top-3 left-3">
@@ -374,6 +373,7 @@ useEffect(() => {
                             <Heart className="h-4 w-4" />
                           </Button>
                         </div> */}
+
                       </div>
                     </Link>
                     
@@ -415,7 +415,6 @@ useEffect(() => {
                           ) : (
                             <span className="text-sm text-muted-foreground">Prix sur demande</span>
                           )}
-                          
 {/*                           <Button size="sm" asChild>
                             <Link href={`/products/${product.id}`}>
                               Voir détails
@@ -432,6 +431,34 @@ useEffect(() => {
         </div>
       </main>
     </div>
+    </ClientLayout>
+  )
+}
+
+// Composant principal avec Suspense boundary
+export default function ProductsPage() {
+  return (
+    <ClientLayout>
+      <Suspense fallback={
+        <div className="min-h-screen bg-gray-50">
+          <main className="container mx-auto px-4 py-8">
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {[...Array(12)].map((_, i) => (
+                <Card key={i} className="animate-pulse">
+                  <div className="aspect-square bg-gray-200"></div>
+                  <CardContent className="p-4">
+                    <div className="h-6 bg-gray-200 rounded mb-2"></div>
+                    <div className="h-4 bg-gray-200 rounded w-2/3 mb-2"></div>
+                    <div className="h-6 bg-gray-200 rounded w-1/3"></div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </main>
+        </div>
+      }>
+        <ProductsContent />
+      </Suspense>
     </ClientLayout>
   )
 }
