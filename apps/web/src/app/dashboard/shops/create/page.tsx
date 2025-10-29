@@ -53,7 +53,7 @@ export default function CreateShopPage() {
       <div className="max-w-2xl">
         <div className="mb-6">
           <Button variant="ghost" size="sm" asChild>
-            <Link href="/dashboard/shops">
+            <Link href="/dashboard/shops" className="flex items-center">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Retour aux boutiques
             </Link>

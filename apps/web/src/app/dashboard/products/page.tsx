@@ -204,15 +204,10 @@ export default function ProductsPage() {
           </div>
           
           <div className="flex gap-2">
-            <Button variant="outline" asChild>
-              <Link href="/dashboard/shops">
-                Gérer boutiques
-              </Link>
-            </Button>
             {/* ✅ Afficher "Ajouter un produit" uniquement si au moins une boutique existe */}
             {shops.length > 0 && (
-              <Button asChild>
-                <Link href="/dashboard/products/create">
+              <Button variant="outline" asChild>
+                <Link href="/dashboard/products/create" className="flex items-center">
                   <Plus className="mr-2 h-4 w-4" />
                   Ajouter un produit
                 </Link>

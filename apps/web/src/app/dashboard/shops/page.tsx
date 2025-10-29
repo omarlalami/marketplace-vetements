@@ -69,8 +69,8 @@ export default function ShopsPage() {
             <h1 className="text-3xl font-bold tracking-tight">Mes boutiques</h1>
             <p className="text-muted-foreground">Gérez vos boutiques de créateur</p>
           </div>
-          <Button asChild>
-            <Link href="/dashboard/shops/create">
+          <Button variant="outline" asChild>
+            <Link href="/dashboard/shops/create" className="flex items-center">
               <Plus className="mr-2 h-4 w-4" />
               Créer une boutique
             </Link>
