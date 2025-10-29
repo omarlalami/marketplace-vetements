@@ -71,7 +71,14 @@ export default function EditProductPage() {
   const [productId, setProductId] = useState('')
   const [editingVariant, setEditingVariant] = useState<string | null>(null)
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('table')
-  
+  const [variantError, setVariantError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (variantError) {
+      const timer = setTimeout(() => setVariantError(null), 7000)
+      return () => clearTimeout(timer)
+    }
+  }, [variantError])
 
   // Charger les données du produit
   useEffect(() => {
@@ -218,6 +225,23 @@ export default function EditProductPage() {
     e.preventDefault()
     setError('')
     setSaving(true)
+
+      // Vérif doublons
+  const seen = new Set();
+  for (const v of variants) {
+    const key = v.attributes
+      .map(attr => `${attr.attribute_id}:${attr.value_id}`)
+      .sort()
+      .join('|');
+    if (seen.has(key)) {
+      setVariantError(
+        `Certaines variantes ont des attributs identiques (${v.attributes.map(a => a.value).join(' • ')})`
+      );
+      setSaving(false);
+      return;
+    }
+    seen.add(key);
+  }
 
     try {
       const productData = {
@@ -442,7 +466,7 @@ export default function EditProductPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    <Button onClick={addVariant} variant="outline" className="w-full">
+                    <Button onClick={addVariant} variant="outline" className="w-full" disabled={editingVariant !== null}>
                       <Plus className="mr-2 h-4 w-4" />
                       Ajouter une variante
                     </Button>
@@ -621,7 +645,6 @@ export default function EditProductPage() {
                           </thead>
                           <tbody>
                             {variants.map((variant, index) => {
-                              const stockStatus = getStockStatus(variant.stock_quantity)
                               const isEditing = editingVariant === variant.id
                               
                               return (
@@ -735,10 +758,24 @@ export default function EditProductPage() {
                                         variant="ghost"
                                         size="icon"
                                         className="h-8 w-8"
-                                        onClick={() => setEditingVariant(isEditing ? null : variant.id)}
+                                        onClick={() => {
+                                          if (isEditing) {
+                                            // Vérifie si la variante a au moins un attribut choisi
+                                            if (variant.attributes.length === 0) {
+                                              setVariantError('Veuillez choisir au moins une taille ou couleur avant de valider.')
+                                              return
+                                            }
+                                            setVariantError(null)
+                                            setEditingVariant(null)
+                                          } else {
+                                            setVariantError(null)
+                                            setEditingVariant(variant.id)
+                                          }
+                                        }}
                                       >
                                         {isEditing ? <Check className="h-4 w-4" /> : <Edit2 className="h-4 w-4" />}
                                       </Button>
+
                                       <Button
                                         type="button"
                                         variant="ghost"
@@ -755,6 +792,11 @@ export default function EditProductPage() {
                             })}
                           </tbody>
                         </table>
+                        {variantError && (
+                          <div className="mt-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md p-2">
+                            {variantError}
+                          </div>
+                        )}
                       </div>
                     )}
 
