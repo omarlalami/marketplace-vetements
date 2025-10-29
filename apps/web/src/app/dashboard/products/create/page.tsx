@@ -47,7 +47,7 @@ export default function CreateProductPage() {
         setShops(shopsData.shops)
         setCategories(categoriesData.categories)
         setAttributes(attributesData.attributes)
-        console.log("categoriesData : ", JSON.stringify(categoriesData, null, 2))
+        //console.log("categoriesData : ", JSON.stringify(categoriesData, null, 2))
       } catch (error) {
         console.error('Erreur chargement données:', error)
       }
@@ -149,7 +149,7 @@ export default function CreateProductPage() {
         {/* Bouton retour */}
         <div className="flex items-center space-x-4">
           <Button variant="ghost" size="sm" asChild>
-            <Link href="/dashboard/products">
+            <Link href="/dashboard/products" className="flex items-center">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Retour aux produits
             </Link>

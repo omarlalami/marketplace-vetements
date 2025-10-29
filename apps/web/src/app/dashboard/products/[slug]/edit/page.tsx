@@ -372,7 +372,7 @@ export default function EditProductPage() {
         {/* Breadcrumb */}
         <div className="flex items-center space-x-4">
           <Button variant="ghost" size="sm" asChild>
-            <Link href="/dashboard/products">
+            <Link href="/dashboard/products" className="flex items-center">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Retour aux produits
             </Link>

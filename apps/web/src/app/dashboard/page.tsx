@@ -135,7 +135,7 @@ export default function DashboardPage() {
                         asChild
                         disabled={action.disabled}
                       >
-                        <Link href={action.href}>
+                        <Link href={action.href} className="flex items-center">
                           <Plus className="h-4 w-4 mr-2" />
                           {action.disabled ? 'Créez d\'abord une boutique' : 'Commencer'}
                         </Link>
