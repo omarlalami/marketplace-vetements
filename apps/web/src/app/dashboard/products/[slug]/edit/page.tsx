@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge'
 import { ImageUpload } from '@/components/ui/image-upload'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import { apiClient } from '@/lib/api'
-import { ArrowLeft, Plus, X, Trash2, Save } from 'lucide-react'
+import { ArrowLeft, Plus, X, Trash2, Save, Package, DollarSign, Edit2, Check } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { CategorySelect } from '@/components/ui/categorySelect'
@@ -69,6 +69,8 @@ export default function EditProductPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [productId, setProductId] = useState('')
+  const [editingVariant, setEditingVariant] = useState<string | null>(null)
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('table')
   
 
   // Charger les données du produit
@@ -82,15 +84,8 @@ export default function EditProductPage() {
           apiClient.getAttributes()
         ])
 
-        //console.log("produit get for edit", JSON.stringify( await apiClient.getProductForEdit(productId), null, 2))
-        //console.log("produit get classic", JSON.stringify( await apiClient.getProduct(productId), null, 2))
-
         const product = productData.product
         setProductId(product.id)
-
-        //console.log("productData.product ", JSON.stringify( productData.product, null, 2))
-        //console.log("product.id ", JSON.stringify( product.id, null, 2))
-
 
         setFormData({
           name: product.name || '',
@@ -98,26 +93,30 @@ export default function EditProductPage() {
           categoryId: product.category_id || '',
         })
 
-        // Convertir les variantes au bon format
+        // Convertir les variantes au bon format avec attribute_id correct
         const formattedVariants = (product.variants || []).map((v: any) => ({
           id: v.id || `temp-${Date.now()}-${Math.random()}`,
           stock_quantity: v.stock_quantity || 0,
           price: parseFloat(v.price || '0'),
-          attributes: (v.attributes || []).map((attr: any) => ({
-            value_id: attr.value_id,
-            attribute_id: attr.value_id || '',
-            attribute_name: attr.attribute || '',
-            value: attr.value
-          }))
+          attributes: (v.attributes || []).map((attr: any) => {
+            // Trouver l'attribute_id correct depuis attributesData
+            const foundAttr = attributesData.attributes.find((a: any) => 
+              a.name === attr.attribute
+            )
+            return {
+              value_id: attr.value_id,
+              attribute_id: foundAttr?.id || '',
+              attribute_name: attr.attribute || '',
+              value: attr.value
+            }
+          })
         }))
         setVariants(formattedVariants)
 
-        // Images existantes
-        // ✅ Use images from getProduct
         const formattedImages = (product.images || []).map((img: any, index: number) => ({
           id: img.key,
           url: img.url,
-          is_primary: index === 0 // mark the first image as primary if needed
+          is_primary: index === 0
         }))
         setExistingImages(formattedImages)
         setCategories(categoriesData.categories)
@@ -140,20 +139,6 @@ export default function EditProductPage() {
     setFormData(prev => ({ ...prev, [field]: value }))
   }
 
-  const formatPrice = (price: number | string): string => {
-    const num = typeof price === 'string' ? parseFloat(price) : price;
-    
-    if (isNaN(num)) return '0';
-    
-    // Si c'est un nombre entier, pas de décimales
-    if (num === Math.floor(num)) {
-      return num.toString();
-    }
-    
-    // Sinon, afficher avec 2 décimales
-    return num.toFixed(2);
-  }
-
   const addVariant = () => {
     const newVariant: Variant = {
       id: `new-${Date.now()}-${Math.random()}`,
@@ -162,41 +147,19 @@ export default function EditProductPage() {
       attributes: []
     }
     setVariants(prev => [...prev, newVariant])
+    setEditingVariant(newVariant.id)
   }
 
   const removeVariant = (id: string) => {
+    if (!confirm('Êtes-vous sûr de vouloir supprimer cette variante ?')) return
     setVariants(prev => prev.filter(variant => variant.id !== id))
+    if (editingVariant === id) setEditingVariant(null)
   }
 
   const updateVariantField = (variantId: string, field: 'stock_quantity' | 'price', value: number) => {
     setVariants(prev => prev.map(variant => 
       variant.id === variantId ? { ...variant, [field]: value } : variant
     ))
-  }
-
-  const addAttributeToVariant = (variantId: string, attributeId: string) => {
-    const attribute = attributes.find(attr => attr.id === attributeId)
-    if (!attribute || attribute.values.length === 0) return
-
-    const newAttr: VariantAttributeValue = {
-      value_id: attribute.values[0].id,
-      attribute_id: attributeId,
-      attribute_name: attribute.name,
-      value: attribute.values[0].value
-    }
-
-    setVariants(prev => prev.map(variant => {
-      if (variant.id !== variantId) return variant
-      
-      // Vérifier si l'attribut existe déjà
-      const hasAttribute = variant.attributes.some(attr => attr.attribute_id === attributeId)
-      if (hasAttribute) return variant
-
-      return {
-        ...variant,
-        attributes: [...variant.attributes, newAttr]
-      }
-    }))
   }
 
   const updateVariantAttribute = (variantId: string, attributeId: string, valueId: string) => {
@@ -208,13 +171,29 @@ export default function EditProductPage() {
     setVariants(prev => prev.map(variant => {
       if (variant.id !== variantId) return variant
 
-      return {
-        ...variant,
-        attributes: variant.attributes.map(attr => 
-          attr.attribute_id === attributeId 
-            ? { ...attr, value_id: valueId, value: attributeValue.value }
-            : attr
-        )
+      const existingAttrIndex = variant.attributes.findIndex(
+        attr => attr.attribute_id === attributeId
+      )
+
+      if (existingAttrIndex >= 0) {
+        const newAttributes = [...variant.attributes]
+        newAttributes[existingAttrIndex] = {
+          value_id: valueId,
+          attribute_id: attributeId,
+          attribute_name: attribute?.name ?? '',
+          value: attributeValue.value
+        }
+        return { ...variant, attributes: newAttributes }
+      } else {
+        return {
+          ...variant,
+          attributes: [...variant.attributes, {
+            value_id: valueId,
+            attribute_id: attributeId,
+            attribute_name: attribute?.name ?? '',
+            value: attributeValue.value
+          }]
+        }
       }
     }))
   }
@@ -222,7 +201,6 @@ export default function EditProductPage() {
   const removeAttributeFromVariant = (variantId: string, attributeId: string) => {
     setVariants(prev => prev.map(variant => {
       if (variant.id !== variantId) return variant
-
       return {
         ...variant,
         attributes: variant.attributes.filter(attr => attr.attribute_id !== attributeId)
@@ -232,11 +210,7 @@ export default function EditProductPage() {
 
   const handleDeleteExistingImage = async (imageKey: string) => {
     if (!confirm('Êtes-vous sûr de vouloir supprimer cette image ?')) return
-
-    // Retirer visuellement l’image
     setExistingImages(prev => prev.filter(img => img.id !== imageKey))
-
-    // Marquer pour suppression lors du "save"
     setImagesToDelete(prev => [...prev, imageKey])
   }
 
@@ -246,26 +220,20 @@ export default function EditProductPage() {
     setSaving(true)
 
     try {
-      // Mettre à jour le produit
       const productData = {
         name: formData.name,
         description: formData.description,
         categoryId: formData.categoryId || undefined,
         variants: variants.map(v => ({
-          id: v.id, // ✅ Envoie aussi l’ID de la variante
+          id: v.id,
           stockQuantity: v.stock_quantity,
           price: v.price,
           attributes: v.attributes.map(attr => attr.value_id)
         }))
       }
-      //console.log("donne envoyer du formulaire")
-      //console.log(productData)
-//console.log('productData: ', JSON.stringify(productData, null, 2))
-//console.log('productId: ', JSON.stringify(productId, null, 2))
 
       await apiClient.updateProduct(productId, productData)
 
-      // 2️⃣ Supprimer les images marquées
       for (const imageKey of imagesToDelete) {
         try {
           await apiClient.deleteProductImage(productId, imageKey)
@@ -274,7 +242,6 @@ export default function EditProductPage() {
         }
       }
 
-      // Upload des nouvelles images si présentes
       if (newImages.length > 0) {
         await apiClient.uploadProductImages(productId, newImages)
       }
@@ -287,17 +254,52 @@ export default function EditProductPage() {
     }
   }
 
-  const getAvailableAttributes = (variant: Variant) => {
-    const usedAttributeIds = variant.attributes.map(attr => attr.attribute_id)
-    return attributes.filter(attr => !usedAttributeIds.includes(attr.id))
-  }
-
   const getAttributeIcon = (attributeName: string) => {
     const name = attributeName.toLowerCase()
     if (name.includes('size') || name.includes('taille')) return '📏'
     if (name.includes('color') || name.includes('couleur')) return '🎨'
     if (name.includes('pointure')) return '👟'
     return '⚙️'
+  }
+
+  const getColorClass = (colorName: string) => {
+    const colors: Record<string, string> = {
+      'noir': 'bg-black',
+      'black': 'bg-black',
+      'blanc': 'bg-white border border-gray-300',
+      'white': 'bg-white border border-gray-300',
+      'rouge': 'bg-red-500',
+      'red': 'bg-red-500',
+      'bleu': 'bg-blue-500',
+      'blue': 'bg-blue-500',
+      'vert': 'bg-green-500',
+      'green': 'bg-green-500',
+      'jaune': 'bg-yellow-400',
+      'yellow': 'bg-yellow-400',
+      'beige': 'bg-amber-100 border border-amber-300',
+      'marron': 'bg-amber-700',
+      'brown': 'bg-amber-700',
+      'gris': 'bg-gray-400',
+      'gray': 'bg-gray-400',
+      'rose': 'bg-pink-400',
+      'pink': 'bg-pink-400',
+    }
+    return colors[colorName.toLowerCase()] || 'bg-gray-300'
+  }
+
+  const getVariantLabel = (variant: Variant) => {
+    if (variant.attributes.length === 0) return 'Nouvelle variante'
+    return variant.attributes.map(attr => attr.value).join(' • ')
+  }
+
+  const getTotalStock = () => {
+    return variants.reduce((sum, v) => sum + v.stock_quantity, 0)
+  }
+
+  const getStockStatus = (quantity: number) => {
+    if (quantity === 0) return { label: 'Rupture', color: 'bg-red-100 text-red-700 border-red-200' }
+    if (quantity < 5) return { label: 'Stock faible', color: 'bg-orange-100 text-orange-700 border-orange-200' }
+    return { label: 'En stock', color: 'bg-green-100 text-green-700 border-green-200' }
   }
 
   if (loading) {
@@ -342,7 +344,7 @@ export default function EditProductPage() {
 
   return (
     <DashboardLayout>
-      <div className="max-w-4xl mx-auto space-y-6">
+      <div className="max-w-6xl mx-auto space-y-6">
         {/* Breadcrumb */}
         <div className="flex items-center space-x-4">
           <Button variant="ghost" size="sm" asChild>
@@ -353,9 +355,9 @@ export default function EditProductPage() {
           </Button>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-3">
+        <div className="grid gap-6 lg:grid-cols-4">
           {/* Formulaire principal */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-3 space-y-6">
             <Card>
               <CardHeader>
                 <CardTitle>Modifier le produit</CardTitle>
@@ -402,170 +404,371 @@ export default function EditProductPage() {
                         placeholder="Choisir une catégorie"
                       />
                     </div>
-
-                   {/* A REMPLACER PAR SELECTION BOUTIQUE
-                    <div className="space-y-2">
-                      <Label htmlFor="price">Prix de base (DZD)</Label>
-                      <Input
-                        id="price"
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={formatPrice(formData.price)}
-                        onChange={(e) => handleInputChange('price', e.target.value)}
-                        onBlur={(e) => {
-                          // Formater quand l'utilisateur quitte le champ
-                          const formatted = formatPrice(e.target.value);
-                          handleInputChange('price', formatted);
-                        }}
-                        placeholder="0.00"
-                      />
-                    </div> */}
                   </div>
                 </form>
               </CardContent>
             </Card>
 
-            {/* Variantes */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Variantes</CardTitle>
-                <CardDescription>
-                  Gérez les combinaisons d'attributs (taille, couleur, etc.)
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={addVariant}
-                  >
-                    <Plus className="mr-2 h-4 w-4" />
-                    Ajouter une finition
-                  </Button>
+            {/* NOUVELLE SECTION VARIANTES AMÉLIORÉE */}
+            <div className="space-y-4">
+             
+              {/* Section Variantes */}
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle>Variantes du produit</CardTitle>
+                      <CardDescription>
+                        Gérez les différentes déclinaisons de votre produit
+                      </CardDescription>
+                    </div>
+                    <div className="flex gap-2">
+{/*                       <Button
+                        variant={viewMode === 'grid' ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setViewMode('grid')}
+                      >
+                        Grille
+                      </Button> 
+                      <Button
+                        variant={viewMode === 'table' ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setViewMode('table')}
+                      >
+                        Tableau
+                      </Button>*/}
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <Button onClick={addVariant} variant="outline" className="w-full">
+                      <Plus className="mr-2 h-4 w-4" />
+                      Ajouter une variante
+                    </Button>
 
-                  {variants.map((variant, index) => (
-                    <div key={variant.id} className="p-4 border rounded-lg space-y-4">
-                      <div className="flex justify-between items-center">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium text-sm">Finition {index + 1} dispo en : </span>
-                          {variant.attributes.map(attr => (
-                            <Badge key={attr.attribute_id} variant="secondary" className="text-xs">
-                              {getAttributeIcon(attr.attribute_name)} {attr.value}
-                            </Badge>
-                          ))}
-                        </div>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeVariant(variant.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-
-                      
-                      {/* Attributs de la variante */}
-                      <div className="space-y-3">
-                        <Label className="text-sm font-medium">Attributs</Label>
-                        
-                        {variant.attributes.map((attr) => {
-                          const attribute = attributes.find(a => a.id === attr.attribute_id)
-                          if (!attribute) return null
+                    {viewMode === 'grid' ? (
+                      // Vue Grille (Cards)
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {variants.map((variant, index) => {
+                          const isEditing = editingVariant === variant.id
+                          const colorAttr = variant.attributes.find(a => 
+                            a.attribute_name.toLowerCase().includes('couleur') || 
+                            a.attribute_name.toLowerCase().includes('color')
+                          )
 
                           return (
-                            <div key={attr.attribute_id} className="flex gap-2 items-center">
-                              <div className="flex-1">
-                                <Select
-                                  value={attr.value_id}
-                                  onValueChange={(value) => updateVariantAttribute(variant.id, attr.attribute_id, value)}
-                                >
-                                  <SelectTrigger>
-                                    <SelectValue>
-                                      {getAttributeIcon(attr.attribute_name)} {attr.attribute_name}: {attr.value}
-                                    </SelectValue>
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {attribute.values.map((val) => (
-                                      <SelectItem key={val.id} value={val.id}>
-                                        {val.value}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => removeAttributeFromVariant(variant.id, attr.attribute_id)}
-                              >
-                                <X className="h-4 w-4" />
-                              </Button>
-                            </div>
+                            <Card key={variant.id} className="relative overflow-hidden">
+                              {colorAttr && (
+                                <div 
+                                  className={`absolute left-0 top-0 bottom-0 w-1 ${getColorClass(colorAttr.value)}`}
+                                />
+                              )}
+
+                              <CardContent className="pt-6 pl-6">
+                                <div className="space-y-4">
+                                  {/* En-tête */}
+                                  <div className="flex items-start justify-between">
+                                    <div className="flex-1">
+                                      <div className="flex items-center gap-2 mb-2">
+                                        <h4 className="font-semibold text-sm">
+                                          Variante {index + 1}
+                                        </h4>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground">
+                                        {getVariantLabel(variant)}
+                                      </p>
+                                    </div>
+                                    <div className="flex gap-1">
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8"
+                                        onClick={() => setEditingVariant(isEditing ? null : variant.id)}
+                                      >
+                                        {isEditing ? <Check className="h-4 w-4" /> : <Edit2 className="h-4 w-4" />}
+                                      </Button>
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                        onClick={() => removeVariant(variant.id)}
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                    </div>
+                                  </div>
+
+                                  {/* Attributs */}
+                                  <div className="space-y-2">
+                                    {attributes.map(attribute => {
+                                      const variantAttr = variant.attributes.find(
+                                        a => a.attribute_id === attribute.id
+                                      )
+                                      const isColor = attribute.name.toLowerCase().includes('couleur') || 
+                                                    attribute.name.toLowerCase().includes('color')
+
+                                      return (
+                                        <div key={attribute.id} className="space-y-1">
+                                          <Label className="text-xs text-muted-foreground">
+                                            {getAttributeIcon(attribute.name)} {attribute.name}
+                                          </Label>
+                                          {isEditing ? (
+                                            <div className="flex gap-2">
+                                              <Select
+                                                value={variantAttr?.value_id || ''}
+                                                onValueChange={(value) => 
+                                                  updateVariantAttribute(variant.id, attribute.id, value)
+                                                }
+                                              >
+                                                <SelectTrigger className="h-9">
+                                                  <SelectValue placeholder={`Choisir ${attribute.name.toLowerCase()}`} />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                  {attribute.values.map(val => (
+                                                    <SelectItem key={val.id} value={val.id}>
+                                                      <div className="flex items-center gap-2">
+                                                        {isColor && (
+                                                          <div className={`h-4 w-4 rounded-full ${getColorClass(val.value)}`} />
+                                                        )}
+                                                        {val.value}
+                                                      </div>
+                                                    </SelectItem>
+                                                  ))}
+                                                </SelectContent>
+                                              </Select>
+                                              {variantAttr && (
+                                                <Button
+                                                  type="button"
+                                                  variant="ghost"
+                                                  size="icon"
+                                                  className="h-9 w-9"
+                                                  onClick={() => removeAttributeFromVariant(variant.id, attribute.id)}
+                                                >
+                                                  <X className="h-4 w-4" />
+                                                </Button>
+                                              )}
+                                            </div>
+                                          ) : (
+                                            <div className="flex items-center gap-2">
+                                              {isColor && variantAttr && (
+                                                <div className={`h-5 w-5 rounded-full ${getColorClass(variantAttr.value)}`} />
+                                              )}
+                                              <Badge variant="outline" className="font-normal">
+                                                {variantAttr?.value || 'Non défini'}
+                                              </Badge>
+                                            </div>
+                                          )}
+                                        </div>
+                                      )
+                                    })}
+                                  </div>
+
+                                  {/* Prix et Stock */}
+                                  <div className="grid grid-cols-2 gap-3 pt-3 border-t">
+                                    <div className="space-y-1">
+                                      <Label className="text-xs text-muted-foreground">Prix (DZD)</Label>
+                                      {isEditing ? (
+                                        <Input
+                                          type="number"
+                                          step="0.01"
+                                          value={variant.price}
+                                          onChange={(e) => updateVariantField(variant.id, 'price', parseFloat(e.target.value) || 0)}
+                                          className="h-9"
+                                        />
+                                      ) : (
+                                        <p className="text-lg font-bold">{variant.price.toFixed(2)}</p>
+                                      )}
+                                    </div>
+                                    <div className="space-y-1">
+                                      <Label className="text-xs text-muted-foreground">Stock</Label>
+                                      {isEditing ? (
+                                        <Input
+                                          type="number"
+                                          value={variant.stock_quantity}
+                                          onChange={(e) => updateVariantField(variant.id, 'stock_quantity', parseInt(e.target.value) || 0)}
+                                          className="h-9"
+                                        />
+                                      ) : (
+                                        <p className="text-lg font-bold">{variant.stock_quantity}</p>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
                           )
                         })}
-
-                        {/* Ajouter un attribut */}
-                        {getAvailableAttributes(variant).length > 0 && (
-                          <Select
-                            value=""
-                            onValueChange={(value) => addAttributeToVariant(variant.id, value)}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="+ Ajouter un attribut" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {getAvailableAttributes(variant).map((attr) => (
-                                <SelectItem key={attr.id} value={attr.id}>
+                      </div>
+                    ) : (
+                      // Vue Tableau avec édition inline
+                      <div className="border rounded-lg overflow-x-auto">
+                        <table className="w-full">
+                          <thead className="bg-muted">
+                            <tr>
+                              <th className="text-left p-3 text-sm font-medium whitespace-nowrap">Variante</th>
+                              {attributes.map(attr => (
+                                <th key={attr.id} className="text-left p-3 text-sm font-medium whitespace-nowrap">
                                   {getAttributeIcon(attr.name)} {attr.name}
-                                </SelectItem>
+                                </th>
                               ))}
-                            </SelectContent>
-                          </Select>
-                        )}
+                              <th className="text-left p-3 text-sm font-medium whitespace-nowrap">Prix (DZD)</th>
+                              <th className="text-left p-3 text-sm font-medium whitespace-nowrap">Stock</th>
+                              <th className="text-right p-3 text-sm font-medium whitespace-nowrap">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {variants.map((variant, index) => {
+                              const stockStatus = getStockStatus(variant.stock_quantity)
+                              const isEditing = editingVariant === variant.id
+                              
+                              return (
+                                <tr key={variant.id} className={`border-t ${isEditing ? 'bg-blue-50' : 'hover:bg-muted/50'}`}>
+                                  <td className="p-3">
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-medium text-sm whitespace-nowrap">Variante {index + 1}</span>
+                                    </div>
+                                  </td>
+                                  
+                                  {/* Colonnes d'attributs */}
+                                  {attributes.map(attr => {
+                                    const variantAttr = variant.attributes.find(a => a.attribute_id === attr.id)
+                                    const isColor = attr.name.toLowerCase().includes('couleur')
+                                    
+                                    return (
+                                      <td key={attr.id} className="p-3">
+                                        {isEditing ? (
+                                          <div className="flex items-center gap-2">
+                                            <Select
+                                              value={variantAttr?.value_id || ''}
+                                              onValueChange={(value) => 
+                                                updateVariantAttribute(variant.id, attr.id, value)
+                                              }
+                                            >
+                                              <SelectTrigger className="h-9 min-w-[120px]">
+                                                <SelectValue placeholder="Choisir">
+                                                  {variantAttr && (
+                                                    <div className="flex items-center gap-2">
+                                                      {isColor && (
+                                                        <div className={`h-3 w-3 rounded-full ${getColorClass(variantAttr.value)}`} />
+                                                      )}
+                                                      <span>{variantAttr.value}</span>
+                                                    </div>
+                                                  )}
+                                                </SelectValue>
+                                              </SelectTrigger>
+                                              <SelectContent>
+                                                {attr.values.map(val => (
+                                                  <SelectItem key={val.id} value={val.id}>
+                                                    <div className="flex items-center gap-2">
+                                                      {isColor && (
+                                                        <div className={`h-4 w-4 rounded-full ${getColorClass(val.value)}`} />
+                                                      )}
+                                                      {val.value}
+                                                    </div>
+                                                  </SelectItem>
+                                                ))}
+                                              </SelectContent>
+                                            </Select>
+                                            {variantAttr && (
+                                              <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-8 w-8 flex-shrink-0"
+                                                onClick={() => removeAttributeFromVariant(variant.id, attr.id)}
+                                              >
+                                              </Button>
+                                            )}
+                                          </div>
+                                        ) : (
+                                          <div className="flex items-center gap-2">
+                                            {isColor && variantAttr && (
+                                              <div className={`h-4 w-4 rounded-full ${getColorClass(variantAttr.value)}`} />
+                                            )}
+                                            <span className="text-sm">{variantAttr?.value || '-'}</span>
+                                          </div>
+                                        )}
+                                      </td>
+                                    )
+                                  })}
+                                  
+                                  {/* Prix */}
+                                  <td className="p-3">
+                                    {isEditing ? (
+                                      <Input
+                                        type="number"
+                                        step="0.01"
+                                        value={variant.price}
+                                        onChange={(e) => updateVariantField(variant.id, 'price', parseFloat(e.target.value) || 0)}
+                                        className="h-9 w-28"
+                                      />
+                                    ) : (
+                                      <span className="font-semibold text-sm whitespace-nowrap">
+                                        {variant.price.toFixed(2)} DZD
+                                      </span>
+                                    )}
+                                  </td>
+                                  
+                                  {/* Stock */}
+                                  <td className="p-3">
+                                    {isEditing ? (
+                                      <Input
+                                        type="number"
+                                        value={variant.stock_quantity}
+                                        onChange={(e) => updateVariantField(variant.id, 'stock_quantity', parseInt(e.target.value) || 0)}
+                                        className="h-9 w-20"
+                                      />
+                                    ) : (
+                                      <span className="text-sm">{variant.stock_quantity}</span>
+                                    )}
+                                  </td>
+                                  
+                                  
+                                  {/* Actions */}
+                                  <td className="p-3">
+                                    <div className="flex justify-end gap-1">
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8"
+                                        onClick={() => setEditingVariant(isEditing ? null : variant.id)}
+                                      >
+                                        {isEditing ? <Check className="h-4 w-4" /> : <Edit2 className="h-4 w-4" />}
+                                      </Button>
+                                      <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                        onClick={() => removeVariant(variant.id)}
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              )
+                            })}
+                          </tbody>
+                        </table>
                       </div>
+                    )}
 
-                      {/* Stock et prix */}
-                      <div className="grid gap-4 sm:grid-cols-2">
-                        <div>
-                          <Label>Stock</Label>
-                          <Input
-                            type="number"
-                            min="0"
-                            value={variant.stock_quantity}
-                            onChange={(e) => updateVariantField(variant.id, 'stock_quantity', parseInt(e.target.value) || 0)}
-                            placeholder="0"
-                          />
-                        </div>
-                        
-                        <div>
-                          <Label>Prix</Label>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            value={variant.price}
-                            onChange={(e) => updateVariantField(variant.id, 'price', parseFloat(e.target.value) || 0)}
-                            placeholder="0.00"
-                          />
-
-                        </div>
+                    {variants.length === 0 && (
+                      <div className="text-center py-12 text-muted-foreground">
+                        <Package className="h-12 w-12 mx-auto mb-4 opacity-20" />
+                        <p className="text-lg font-medium mb-2">Aucune variante</p>
+                        <p className="text-sm">Ajoutez des variantes pour gérer le stock par taille, couleur, etc.</p>
                       </div>
-                    </div>
-                  ))}
-
-                  {variants.length === 0 && (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <p className="mb-2">Aucune variante</p>
-                      <p className="text-sm">Ajoutez des variantes pour gérer le stock par taille, couleur, etc.</p>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </div>
 
           {/* Sidebar - Images et actions */}
