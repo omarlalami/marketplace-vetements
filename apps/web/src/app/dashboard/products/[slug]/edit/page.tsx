@@ -419,7 +419,7 @@ export default function EditProductPage() {
                     <div>
                       <CardTitle>Variantes du produit</CardTitle>
                       <CardDescription>
-                        Gérez les différentes déclinaisons de votre produit
+                        Gérez les différentes déclinaisons de votre produit - Obligatoire *
                       </CardDescription>
                     </div>
                     <div className="flex gap-2">
@@ -762,7 +762,7 @@ export default function EditProductPage() {
                       <div className="text-center py-12 text-muted-foreground">
                         <Package className="h-12 w-12 mx-auto mb-4 opacity-20" />
                         <p className="text-lg font-medium mb-2">Aucune variante</p>
-                        <p className="text-sm">Ajoutez des variantes pour gérer le stock par taille, couleur, etc.</p>
+                        <p className="text-sm">Ajoutez des variantes pour gérer le stock par taille, couleur, etc.<br/> Un variant minimum obligatoire</p>
                       </div>
                     )}
                   </div>
@@ -842,7 +842,7 @@ export default function EditProductPage() {
                 <div className="space-y-4">
                   <Button 
                     onClick={handleSubmit}
-                    disabled={saving || !formData.name}
+                    disabled={saving || !formData.name || variants.length === 0}
                     className="w-full"
                   >
                     <Save className="mr-2 h-4 w-4" />

@@ -209,13 +209,6 @@ export default function CreateProductPage() {
                     />
                   </div>
 
-
-
-
-
-
-
-
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-2">
@@ -246,7 +239,7 @@ export default function CreateProductPage() {
               <CardHeader>
                 <CardTitle>Creer des variantes du produit</CardTitle>
                  <CardDescription>
-                  Gérez les combinaisons d'attributs (taille, couleur, etc.)
+                  Gérez les combinaisons d'attributs (taille, couleur, etc. Obligatoire *)
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -356,7 +349,7 @@ export default function CreateProductPage() {
               <CardContent className="pt-6">
                 <Button
                   type="submit"
-                  disabled={loading || !formData.name || !formData.shopId || !formData.price || !formData.stockQuantity || !formData.categoryId}
+                  disabled={loading || !formData.name || !formData.shopId || !formData.price || !formData.stockQuantity || !formData.categoryId || generatedVariants.length === 0}
                   className="w-full"
                 >
                   {loading ? 'Création...' : 'Créer le produit'}
