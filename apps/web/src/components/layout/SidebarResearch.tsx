@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { apiClient } from '@/lib/api'
+import { X, SlidersHorizontal } from 'lucide-react'
 
 interface SidebarResearchProps {
   onFilterChange: (filters: {
@@ -22,6 +23,7 @@ export function SidebarResearch({ onFilterChange }: SidebarResearchProps) {
   const [shopSlug, setShopSlug] = useState('')
   const [shops, setShops] = useState<{ slug: string; name: string }[]>([])
   const [loadingShops, setLoadingShops] = useState(false)
+  const [isOpen, setIsOpen] = useState(false)
 
   // 🔹 Charger toutes les boutiques
   useEffect(() => {
@@ -52,6 +54,7 @@ export function SidebarResearch({ onFilterChange }: SidebarResearchProps) {
       search: search || undefined,
       shopSlug: shopSlug === 'all' ? undefined : shopSlug || undefined,
     })
+    setIsOpen(false)
   }
 
   const handleReset = () => {
@@ -62,8 +65,8 @@ export function SidebarResearch({ onFilterChange }: SidebarResearchProps) {
     onFilterChange({})
   }
 
-  return (
-    <aside className="p-4 bg-white border rounded-xl shadow-sm space-y-5 w-full md:w-64">
+  const FilterContent = (
+    <>
       <h2 className="text-lg font-semibold">Filtres</h2>
 
       {/* 🔍 Recherche par nom / description */}
@@ -74,6 +77,7 @@ export function SidebarResearch({ onFilterChange }: SidebarResearchProps) {
           placeholder="Nom ou description..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
+          autoComplete="off"
         />
       </div>
 
@@ -128,6 +132,46 @@ export function SidebarResearch({ onFilterChange }: SidebarResearchProps) {
           Réinitialiser
         </Button>
       </div>
-    </aside>
+    </>
+  )
+
+  return (
+    <>
+      {/* 📱 Bouton pour mobile - Caché sur md+ */}
+      <div className="md:hidden fixed bottom-6 right-6 z-40">
+        <Button
+          onClick={() => setIsOpen(true)}
+          className="rounded-full w-14 h-14 p-0 shadow-lg"
+        >
+          <SlidersHorizontal className="w-6 h-6" />
+        </Button>
+      </div>
+
+      {/* 📋 Modal pour mobile */}
+      {isOpen && (
+        <div className="md:hidden fixed inset-0 z-50 bg-black/50 animate-in fade-in">
+          <div className="absolute inset-x-0 bottom-0 bg-white rounded-t-2xl p-6 space-y-5 max-h-[90vh] overflow-y-auto animate-in slide-in-from-bottom-5">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-semibold">Filtres</h2>
+              <button
+                onClick={() => setIsOpen(false)}
+                className="p-1 hover:bg-gray-100 rounded-lg transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-5">
+              {FilterContent}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 💻 Sidebar pour desktop - Caché sur md- */}
+      <aside className="hidden md:block p-4 bg-white border rounded-xl shadow-sm space-y-5 w-64">
+        {FilterContent}
+      </aside>
+    </>
   )
 }

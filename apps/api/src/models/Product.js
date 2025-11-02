@@ -193,98 +193,100 @@ class Product {
 
 
   // Route publique pour les produits (avec filtre boutique)
-  static async searchPublicProducts({ search, slug, minPrice, maxPrice, shop, limit = 20, page = 1 }) {
-    const pageNumber = parseInt(page) || 1;
-    const limitNumber = parseInt(limit) || 20;
-    const offset = (pageNumber - 1) * limitNumber;
+static async searchPublicProducts({ search, slug, minPrice, maxPrice, shop, limit = 20, page = 1 }) {
+  const pageNumber = parseInt(page) || 1;
+  const limitNumber = parseInt(limit) || 20;
+  const offset = (pageNumber - 1) * limitNumber;
 
-    let query = `
-      SELECT 
-        p.id,
-        p.name,
-        p.slug,
-        p.description,
-        p.created_at,
-        s.name AS shop_name,
-        s.slug AS shop_slug,
-        c.name AS category_name,
-        c.slug AS category_slug,
-        MIN(pv.price) AS min_price,
-        MAX(pv.price) AS max_price,
-        (
-          SELECT object_name 
-          FROM product_images 
-          WHERE product_id = p.id 
-          AND is_primary = true 
-          LIMIT 1
-        ) AS primary_image
-      FROM products p
-      LEFT JOIN shops s ON p.shop_id = s.id
-      LEFT JOIN categories c ON p.category_id = c.id
-      LEFT JOIN product_variants pv ON pv.product_id = p.id AND pv.is_active = true
-      WHERE p.is_active = true AND s.is_active = true
-    `;
+  let query = `
+    SELECT 
+      p.id,
+      p.name,
+      p.slug,
+      p.description,
+      p.created_at,
+      s.name AS shop_name,
+      s.slug AS shop_slug,
+      c.name AS category_name,
+      c.slug AS category_slug,
+      COALESCE(MIN(CASE WHEN pv.is_active = true THEN pv.price END), 0) AS min_price,
+      COALESCE(MAX(CASE WHEN pv.is_active = true THEN pv.price END), 0) AS max_price,
+      (
+        SELECT object_name 
+        FROM product_images 
+        WHERE product_id = p.id 
+        AND is_primary = true 
+        LIMIT 1
+      ) AS primary_image
+    FROM products p
+    LEFT JOIN shops s ON p.shop_id = s.id
+    LEFT JOIN categories c ON p.category_id = c.id
+    LEFT JOIN product_variants pv ON pv.product_id = p.id
+    WHERE p.is_active = true AND s.is_active = true
+  `;
 
-    const params = [];
-    let paramIndex = 1;
+  const params = [];
+  let paramIndex = 1;
 
-    if (search) {
-      query += ` AND (p.name ILIKE $${paramIndex} OR p.description ILIKE $${paramIndex} OR s.name ILIKE $${paramIndex})`;
-      params.push(`%${search}%`);
-      paramIndex++;
-    }
-
-    if (slug) {
-      query += ` AND (
-        c.slug = $${paramIndex}
-        OR c.parent_id IN (SELECT id FROM categories WHERE slug = $${paramIndex})
-      )`;
-      params.push(slug);
-      paramIndex++;
-    }
-
-    if (minPrice) {
-      query += ` AND EXISTS (
-        SELECT 1 FROM product_variants pv2 
-        WHERE pv2.product_id = p.id AND pv2.price >= $${paramIndex} AND pv2.is_active = true
-      )`;
-      params.push(parseFloat(minPrice));
-      paramIndex++;
-    }
-
-    if (maxPrice) {
-      query += ` AND EXISTS (
-        SELECT 1 FROM product_variants pv3 
-        WHERE pv3.product_id = p.id AND pv3.price <= $${paramIndex} AND pv3.is_active = true
-      )`;
-      params.push(parseFloat(maxPrice));
-      paramIndex++;
-    }
-
-    if (shop) {
-      query += ` AND s.slug = $${paramIndex}`;
-      params.push(shop);
-      paramIndex++;
-    }
-
-    query += `
-      GROUP BY p.id, p.slug, s.name, s.slug, c.name, c.slug
-      ORDER BY p.created_at DESC
-      LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
-    `;
-    params.push(limitNumber, offset);
-
-    const result = await pool.query(query, params);
-
-    return {
-      products: result.rows,
-      pagination: {
-        page: pageNumber,
-        limit: limitNumber,
-        hasMore: result.rows.length === limitNumber,
-      },
-    };
+  if (search) {
+    query += ` AND (p.name ILIKE $${paramIndex} OR p.description ILIKE $${paramIndex} OR s.name ILIKE $${paramIndex})`;
+    params.push(`%${search}%`);
+    paramIndex++;
   }
+
+  if (slug) {
+    query += ` AND (
+      c.slug = $${paramIndex}
+      OR c.parent_id IN (SELECT id FROM categories WHERE slug = $${paramIndex})
+    )`;
+    params.push(slug);
+    paramIndex++;
+  }
+
+  if (shop) {
+    query += ` AND s.slug = $${paramIndex}`;
+    params.push(shop);
+    paramIndex++;
+  }
+
+  query += `
+    GROUP BY p.id, p.slug, s.name, s.slug, c.name, c.slug
+    HAVING 1=1
+  `;
+
+  // 🔹 Les filtres de prix doivent être dans HAVING (après GROUP BY)
+  if (minPrice) {
+    query += ` AND MIN(CASE WHEN pv.is_active = true THEN pv.price END) >= $${paramIndex}`;
+    params.push(parseFloat(minPrice));
+    paramIndex++;
+  }
+
+  if (maxPrice) {
+    query += ` AND MAX(CASE WHEN pv.is_active = true THEN pv.price END) <= $${paramIndex}`;
+    params.push(parseFloat(maxPrice));
+    paramIndex++;
+  }
+
+  query += `
+    ORDER BY p.created_at DESC
+    LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+  `;
+  params.push(limitNumber, offset);
+
+  console.log('🔍 SQL Query:', query);
+  console.log('📦 Params:', params);
+
+  const result = await pool.query(query, params);
+
+  return {
+    products: result.rows,
+    pagination: {
+      page: pageNumber,
+      limit: limitNumber,
+      hasMore: result.rows.length === limitNumber,
+    },
+  };
+}
 
   // 🔹 Recherche produit (reste quasi identique)
   // to be deleted, not used
