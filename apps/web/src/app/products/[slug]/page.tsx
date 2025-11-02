@@ -293,9 +293,11 @@ export default function ProductDetailPage() {
                   </div>
                 </>
               ) : (
-                <div className="flex items-center justify-center h-full text-gray-400">
-                  <ShoppingBag className="h-16 w-16 opacity-50" />
-                </div>
+              <div className="flex flex-col items-center justify-center h-full text-gray-400">
+                <ShoppingBag className="h-16 w-16 opacity-50 mb-2" />
+                <p className="text-sm">Pas d'image</p>
+              </div>
+                
               )}
               {isOutOfStock && allAttributesSelected && (
                 <div className="absolute inset-0 bg-black/70 flex items-center justify-center backdrop-blur-sm">
@@ -346,9 +348,6 @@ export default function ProductDetailPage() {
                 >
                   {product.shop_name}
                 </Link>
-                <span className="text-xs text-gray-400 px-3 py-1 bg-gray-50 rounded-full">
-                  {product.category_name}
-                </span>
               </div>
               
               <h1 className="text-3xl lg:text-4xl font-bold mb-4 leading-tight">

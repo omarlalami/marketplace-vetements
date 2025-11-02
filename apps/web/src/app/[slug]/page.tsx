@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation'
 import { apiClient } from '@/lib/api'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
 import { ClientLayout } from '@/components/layout/ClientLayout'
 import Image from 'next/image'
@@ -142,29 +143,34 @@ export default function CategoryPage() {
                 href={`/products/${product.slug || product.id}`}
                 className="group"
               >
-                <Card className="overflow-hidden hover:shadow-lg transition-shadow">
+                <Card className="relative overflow-hidden hover:shadow-lg transition-shadow">
                   <CardHeader className="p-0">
                     <div className="relative w-full h-48">
                       <Image
-                        src={product.primary_image?.url || '/placeholder.png'}
+                        src={product.primary_image?.url || '/placeholder-product.jpg'}
                         alt={product.name}
                         fill
                         className="object-cover group-hover:scale-105 transition-transform duration-300"
                       />
                     </div>
+
+                    {(product.min_price || product.max_price) && (
+                      <div className="absolute top-3 left-3">
+                        <Badge className="bg-white text-black hover:bg-white">
+                          {formatPrice(product.min_price ?? 0)} DZD
+                        </Badge>
+                      </div>
+                    )}
+
+
                   </CardHeader>
                   <CardContent className="p-4">
                     <CardTitle className="text-sm font-semibold mb-1">
                       {product.name}
                     </CardTitle>
                     <p className="text-sm text-gray-500 line-clamp-2">
-                      {product.description}
+                      {product.shop_name}
                     </p>
-                    {product.min_price && (
-                      <p className="mt-2 text-primary font-bold">
-                        À partir de {formatPrice(product.min_price)} DZD
-                      </p>
-                    )}
                   </CardContent>
                 </Card>
               </Link>

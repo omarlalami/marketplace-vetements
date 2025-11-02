@@ -17,6 +17,7 @@ import {
   Heart,
   Share2,
   Mail,
+  ShoppingBag,
   ExternalLink
 } from 'lucide-react'
 import Link from 'next/link'
@@ -326,11 +327,9 @@ export default function ShopPage() {
                         className="object-cover group-hover:scale-105 transition-transform duration-300"
                       />
                     ) : (
-                      <div className="flex items-center justify-center h-full text-gray-400">
-                        <div className="text-center">
-                          <div className="w-12 h-12 bg-gray-200 rounded mb-2 mx-auto"></div>
-                          <p className="text-sm">Pas d'image</p>
-                        </div>
+                      <div className="flex flex-col items-center justify-center h-full text-gray-400">
+                        <ShoppingBag className="h-16 w-16 opacity-50 mb-2" />
+                        <p className="text-sm">Pas d'image</p>
                       </div>
                     )}
                     

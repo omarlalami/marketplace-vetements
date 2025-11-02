@@ -26,6 +26,7 @@ interface Product {
   shop_name?: string
   description?: string
   rating?: number
+  category_name: string
   reviews?: number
   price?: number
   min_price: number
@@ -191,25 +192,26 @@ const creators = [
                           (e.target as HTMLImageElement).src = '/placeholder-product.jpg'
                         }}
                       />
-                    </div>
 
+                    {(product.min_price || product.max_price) && (
+                      <div className="absolute top-3 left-3">
+                        <Badge className="bg-white text-black hover:bg-white">
+                          {formatPrice(product.min_price ?? 0)} DZD
+                        </Badge>
+                      </div>
+                    )}
+                    </div>
                     {/* CONTENT */}
                     <CardContent className="p-4 flex-1 flex flex-col">
                       <CardTitle className="text-base font-semibold mb-1 line-clamp-2">
                         {product.name}
                       </CardTitle>
                       <p className="text-xs text-gray-500 mb-2">{product.shop_name}</p>
-                      {product.description ? (
-                        <p className="text-sm text-gray-600 line-clamp-3 flex-1">{product.description}</p>
-                      ) : (
-                        <p className="text-sm text-gray-400 italic flex-1">Aucune description disponible</p>
-                      )}
-
-                      <div className="mt-4">
-                        <p className="text-purple-600 font-bold">
-                          À partir de {formatPrice(product.min_price)} DZD
+                      {product.category_name && (
+                        <p className="text-sm text-muted-foreground">
+                          {product.category_name}
                         </p>
-                      </div>
+                      )}
                     </CardContent>
                   </Card>
                 </Link>
