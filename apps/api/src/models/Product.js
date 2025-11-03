@@ -229,8 +229,9 @@ static async searchPublicProducts({ search, slug, minPrice, maxPrice, shop, limi
   let paramIndex = 1;
 
   if (search) {
+    const escapedSearch = search.replace(/[\\%_]/g, '\\$&');
     query += ` AND (p.name ILIKE $${paramIndex} OR p.description ILIKE $${paramIndex} OR s.name ILIKE $${paramIndex})`;
-    params.push(`%${search}%`);
+    params.push(`%${escapedSearch}%`);
     paramIndex++;
   }
 
@@ -244,6 +245,10 @@ static async searchPublicProducts({ search, slug, minPrice, maxPrice, shop, limi
   }
 
   if (shop) {
+    // Valider que le slug respecte un pattern
+    if (!/^[a-z0-9-]+$/.test(shop)) {
+      throw new Error('Format de slug invalide');
+    }
     query += ` AND s.slug = $${paramIndex}`;
     params.push(shop);
     paramIndex++;
@@ -255,14 +260,16 @@ static async searchPublicProducts({ search, slug, minPrice, maxPrice, shop, limi
   `;
 
   // 🔹 Les filtres de prix doivent être dans HAVING (après GROUP BY)
-  if (minPrice) {
-    query += ` AND MIN(CASE WHEN pv.is_active = true THEN pv.price END) >= $${paramIndex}`;
+  if (minPrice && maxPrice) {
+    query += ` AND BOOL_OR(pv.is_active = true AND pv.price BETWEEN $${paramIndex} AND $${paramIndex + 1})`;
+    params.push(parseFloat(minPrice), parseFloat(maxPrice));
+    paramIndex += 2;
+  } else if (minPrice) {
+    query += ` AND BOOL_OR(pv.is_active = true AND pv.price >= $${paramIndex})`;
     params.push(parseFloat(minPrice));
     paramIndex++;
-  }
-
-  if (maxPrice) {
-    query += ` AND MAX(CASE WHEN pv.is_active = true THEN pv.price END) <= $${paramIndex}`;
+  } else if (maxPrice) {
+    query += ` AND BOOL_OR(pv.is_active = true AND pv.price <= $${paramIndex})`;
     params.push(parseFloat(maxPrice));
     paramIndex++;
   }
