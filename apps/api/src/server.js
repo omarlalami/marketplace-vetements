@@ -10,6 +10,7 @@ const productRoutes = require('./routes/products');
 const categoryRoutes = require('./routes/categories');
 const attributesRoutes = require('./routes/attributes');
 const ordersRoutes = require('./routes/orders');
+const { authLimiter, globalLimiter } = require('./middleware/rateLimiter');
 
 const app = express();
 
@@ -21,6 +22,11 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(cookieParser());
 app.use(express.urlencoded({ extended: true }));
+
+// Appliquer le limiteur global à toutes les routes
+app.use(globalLimiter);
+// Appliquer une limite plus stricte sur les routes sensibles
+app.use('/auth', authLimiter);
 
 // Routes
 app.use('/auth', authRoutes);
