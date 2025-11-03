@@ -42,8 +42,6 @@ function ShopsContent() {
         const data = await apiClient.getAllShops() // limite large
         setShops(data)
         setFilteredShops(data)
-        //console.log('Tout les shopp recu : ', JSON.stringify(data, null, 2))
-
       } catch (error) {
         console.error('Erreur lors du chargement des boutiques :', error)
         setError('Erreur lors du chargement des boutiques')
@@ -98,7 +96,6 @@ function ShopsContent() {
 
   if (loading) {
     return (
-      <ClientLayout>
       <div className="min-h-screen bg-gray-50">
         <main className="container mx-auto px-4 py-8">
           {/* Header skeleton */}
@@ -129,12 +126,10 @@ function ShopsContent() {
           </div>
         </main>
       </div>
-      </ClientLayout>
     )
   }
 
   return (
-    <ClientLayout>
     <div className="max-w-7xl mx-auto p-4">
       {/* En-tête */}
       <div className="text-center mb-12">
@@ -164,7 +159,7 @@ function ShopsContent() {
         <div className="relative w-full md:w-1/2 md:mx-auto">
           <PackageSearch className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
           <Input
-            placeholder="Rechercher un créateur ou une boutique..."
+            placeholder="Rechercher une boutique..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10 h-10 rounded-lg focus:ring-2 focus:ring-primary/40"
@@ -294,7 +289,6 @@ function ShopsContent() {
         </div>
       )}
     </div>
-    </ClientLayout>
   )
 }
 

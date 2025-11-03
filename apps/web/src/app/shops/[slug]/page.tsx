@@ -17,6 +17,7 @@ import {
   Heart,
   Share2,
   Mail,
+  ShoppingBag,
   ExternalLink
 } from 'lucide-react'
 import Link from 'next/link'
@@ -38,9 +39,10 @@ interface Product {
   name: string
   slug: string
   description: string
-  price: number
   category_name: string
-    primary_image?: {
+  min_price?: number
+  max_price?: number
+  primary_image?: {
     url: string
     key: string
   } | null
@@ -72,6 +74,8 @@ export default function ShopPage() {
         setShop(shopData.shop)
         setProducts(productsData.products || [])
         setFilteredProducts(productsData.products || [])
+        console.log('productsData :', JSON.stringify(productsData, null, 2))
+
       } catch (error: any) {
         setError(error.response?.data?.error || 'Boutique non trouvée')
       } finally {
@@ -84,12 +88,27 @@ export default function ShopPage() {
     }
   }, [shopSlug])
 
+  const formatPrice = (price: number | string): string => {
+    const num = typeof price === 'string' ? parseFloat(price) : price;
+    
+    if (isNaN(num)) return '0';
+
+    // Si c'est un nombre entier, pas de décimales
+    if (num === Math.floor(num)) {
+      return num.toString();
+    }
+
+    // Sinon, afficher avec 2 décimales
+    return num.toFixed(2);
+  }
+
   // Filtrer les produits
   useEffect(() => {
     if (searchTerm) {
       const filtered = products.filter(product =>
         product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        product.description?.toLowerCase().includes(searchTerm.toLowerCase())
+        product.description?.toLowerCase().includes(searchTerm.toLowerCase())||
+        product.category_name?.toLowerCase().includes(searchTerm.toLowerCase())
       )
       setFilteredProducts(filtered)
     } else {
@@ -168,15 +187,6 @@ export default function ShopPage() {
     <div className="min-h-screen bg-gray-50">
 
       <main className="container mx-auto px-4 py-8">
-        {/* Breadcrumb */}
-        <div className="mb-6">
-          <Button variant="ghost" size="sm" asChild>
-            <Link href="/products">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Retour aux produits
-            </Link>
-          </Button>
-        </div>
 
         {/* En-tête de la boutique */}
         <div className="mb-8">
@@ -204,15 +214,9 @@ export default function ShopPage() {
                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                   <div>
                     <h1 className="text-3xl font-bold mb-2">{shop.name}</h1>
-                    <p className="text-muted-foreground mb-3">Par {shop.owner_name}</p>
-                    
                     <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
                       <div className="flex items-center gap-1">
-                        <Calendar className="h-4 w-4" />
-                        <span>Depuis {new Date(shop.created_at).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <span>{filteredProducts.length} création{filteredProducts.length > 1 ? 's' : ''}</span>
+                        <span>{filteredProducts.length} Création{filteredProducts.length > 1 ? 's' : ''} unique{filteredProducts.length > 1 ? 's' : ''}</span>
                       </div>
                     </div>
 
@@ -246,48 +250,37 @@ export default function ShopPage() {
 
         {/* Barre de recherche et contrôles */}
         <div className="mb-8">
-          <div className="bg-white rounded-lg p-6 border">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 sm:p-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-              <div className="flex-1 max-w-md">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                  <Input
-                    placeholder="Rechercher dans cette boutique..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
+              {/* Barre de recherche */}
+              <div className="flex-1 max-w-lg w-full relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  placeholder="Rechercher un produit dans cette boutique..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 pr-12 py-2 rounded-full border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200"
+                />
+                {searchTerm && (
+                  <button
+                    onClick={() => setSearchTerm('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition"
+                  >
+                    ✕
+                  </button>
+                )}
               </div>
 
+              {/* Compteur + mode d’affichage */}
               <div className="flex items-center gap-4">
-                <span className="text-sm text-muted-foreground">
+                <span className="text-sm text-gray-500">
                   {filteredProducts.length} produit{filteredProducts.length > 1 ? 's' : ''}
                 </span>
-                
-                {/* Sélecteur de vue */}
-                <div className="border rounded-md p-1">
-                  <Button
-                    variant={viewMode === 'grid' ? 'default' : 'ghost'}
-                    size="sm"
-                    onClick={() => setViewMode('grid')}
-                    className="px-2"
-                  >
-                    <Grid className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant={viewMode === 'list' ? 'default' : 'ghost'}
-                    size="sm"
-                    onClick={() => setViewMode('list')}
-                    className="px-2"
-                  >
-                    <List className="h-4 w-4" />
-                  </Button>
-                </div>
               </div>
             </div>
           </div>
         </div>
+
 
         {/* Grille des produits */}
         {filteredProducts.length === 0 ? (
@@ -334,19 +327,17 @@ export default function ShopPage() {
                         className="object-cover group-hover:scale-105 transition-transform duration-300"
                       />
                     ) : (
-                      <div className="flex items-center justify-center h-full text-gray-400">
-                        <div className="text-center">
-                          <div className="w-12 h-12 bg-gray-200 rounded mb-2 mx-auto"></div>
-                          <p className="text-sm">Pas d'image</p>
-                        </div>
+                      <div className="flex flex-col items-center justify-center h-full text-gray-400">
+                        <ShoppingBag className="h-16 w-16 opacity-50 mb-2" />
+                        <p className="text-sm">Pas d'image</p>
                       </div>
                     )}
                     
                     {/* Badge prix */}
-                    {product.price && (
+                    {(product.min_price || product.max_price) && (
                       <div className="absolute top-3 left-3">
                         <Badge className="bg-white text-black hover:bg-white">
-                          {product.price}€
+                          {formatPrice(product.min_price ?? 0)} DZD
                         </Badge>
                       </div>
                     )}
@@ -380,22 +371,6 @@ export default function ShopPage() {
                         {product.description}
                       </p>
                     )}
-                    
-                    <div className="flex justify-between items-center pt-2">
-                      {product.price ? (
-                        <span className="text-xl font-bold text-green-600">
-                          {product.price}€
-                        </span>
-                      ) : (
-                        <span className="text-sm text-muted-foreground">Prix sur demande</span>
-                      )}
-                      
-                      <Button size="sm" asChild>
-                        <Link href={`/products/${product.id}`}>
-                          Voir détails
-                        </Link>
-                      </Button>
-                    </div>
                   </div>
                 </CardContent>
               </Card>
