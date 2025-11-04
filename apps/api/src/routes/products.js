@@ -103,7 +103,6 @@ router.get('/public', async (req, res) => {
         }
       })
     );
-    //console.log('🟢 produits envoyer : ', JSON.stringify(productsWithImages, null, 2))
     res.json({
       ok: true,
       products: productsWithImages,
@@ -138,38 +137,6 @@ router.get('/:slug', optionalAuth, async (req, res) => {
   }
 });
 
-// Rechercher des produits (public)
-//not used, to be delete
-/* router.get('/', async (req, res) => {
-  try {
-    const {
-      search,
-      limit = 20,
-      page = 1
-    } = req.query;
-
-    const offset = (page - 1) * limit;
-
-    const products = await Product.searchProducts({
-      search,
-      limit: parseInt(limit),
-      offset
-    });
-
-    res.json({
-      products,
-      pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
-        hasMore: products.length === parseInt(limit)
-      }
-    });
-
-  } catch (error) {
-    console.error('Erreur recherche produits:', error);
-    res.status(500).json({ error: 'Erreur lors de la recherche de produits' });
-  }
-}); */
 
 // Upload d'images pour un produit
 //tester ok
@@ -218,61 +185,6 @@ router.post('/:productId/images', authenticateToken, upload.array('images', 10),
   }
 });
 
-// Récupérer les produits d'une boutique spécifique (pour le dashboard)
-// tester ok
-//a suprimer car ca se repete avec getProducts quiu propose deja de filtrer avec shop_slug
-/* router.get('/shop/:shopId/products', authenticateToken, async (req, res) => {
-  try {
-    const { shopId } = req.params;
-    
-    // Vérifier que l'utilisateur possède cette boutique
-    const shop = await Shop.findById(shopId);
-    if (!shop) {
-      return res.status(404).json({ error: 'Boutique non trouvée' });
-    }
-
-    if (shop.owner_id !== req.user.userId) {
-      return res.status(403).json({ error: 'Accès non autorisé' });
-    }
-
-    const products = await Product.findByShopId(shopId);
-
-    res.json({
-      products
-    });
-
-  } catch (error) {
-    console.error('Erreur récupération produits boutique:', error);
-    res.status(500).json({ error: 'Erreur lors de la récupération des produits' });
-  }
-}); */
-
-// Récupérer un produit pour édition (protégé)
-//tester ok
-//est ce vraiment utile cette route ?
-router.get('/:id/edit', authenticateToken, async (req, res) => {
-  try {
-    const { id } = req.params;
-    
-    const product = await Product.findById(id);
-    if (!product) {
-      return res.status(404).json({ error: 'Produit non trouvé' });
-    }
-
-    // Vérifier que l'utilisateur peut éditer ce produit
-    const shop = await Shop.findById(product.shop_id);
-    if (shop.owner_id !== req.user.userId) {
-      return res.status(403).json({ error: 'Vous n\'avez pas les droits pour éditer ce produit' });
-    }
-
-    res.json({ product });
-
-  } catch (error) {
-    console.error('Erreur récupération produit pour édition:', error);
-    res.status(500).json({ error: 'Erreur lors de la récupération du produit' });
-  }
-});
-
 // Route pour mettre à jour un produit
 //tester ok 
 router.put('/:id', authenticateToken, async (req, res) => {
@@ -313,9 +225,6 @@ router.delete('/:productId/images/:imageKey', authenticateToken, async (req, res
     const { productId } = req.params;
     const imageKey = decodeURIComponent(req.params.imageKey);
     
-
-    //console.log("donne recu delete imge route product" + productId + "     " + imageKey);
-
     // Vérifier les droits
     const product = await Product.findById(productId);
     if (!product) {

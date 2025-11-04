@@ -3,12 +3,6 @@ const User = require('../models/User');
 
 const authenticateToken = async (req, res, next) => {
 
-/* console.log("🔍 HEADERS:", req.headers)
-console.log("🔍 BODY:", req.body)
-console.log("🔍 PARAMS:", req.params)
-console.log("🔍 QUERY:", req.query)
-console.log("🔍 COOKIES:", req.cookies) 
-console.log("🔍 QUERY:", req.user)*/
   const token =  req.cookies["auth-store"];
 
   if (!token) {
