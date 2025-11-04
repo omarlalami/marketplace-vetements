@@ -1,5 +1,6 @@
 const express = require('express');
 const Order = require('../models/Order');
+const Shop = require('../models/Shop');
 const { authenticateToken, optionalAuth } = require('../middleware/auth');
 const Joi = require('joi');
 const { findByNumberAndEmail } = require('../controllers/orderController');
@@ -89,54 +90,6 @@ router.post('/', optionalAuth, async (req, res) => {
   }
 });
 
-// Récupérer les commandes de l'utilisateur
-/* router.get('/my-orders', authenticateToken, async (req, res) => {
-  try {
-    const { status, limit } = req.query;
-    
-    const orders = await Order.findByUserId(req.user.userId, {
-      status,
-      limit: limit ? parseInt(limit) : undefined
-    });
-
-    res.json({ 
-      ok: true,
-      orders 
-    });
-
-  } catch (error) {
-    console.error('Erreur récupération commandes:', error);
-    res.status(500).json({ 
-      ok: false,
-      message: 'Erreur lors de la récupération des commandes' 
-    });
-  }
-}); */
-
-// Récupérer une commande par ID
-//a supprimer
-/* router.get('/:orderId', optionalAuth, async (req, res) => {
-  try {
-    const { orderId } = req.params;
-
-    const order = await Order.findById(orderId, req.user ? req.user.userId : null);
-    if (!order) {
-      return res.status(404).json({ ok: false, message: 'Commande non trouvée' });
-    }
-
-    res.json({
-      ok: true,
-      order
-    });
-  } catch (error) {
-    console.error('Erreur récupération commande:', error);
-    res.status(500).json({
-      ok: false,
-      message: 'Erreur lors de la récupération de la commande'
-    });
-  }
-}); */
-
 // Récupérer une commande par orderNumber
 // utiliser dans confirmation page
 router.get('/:orderNumber', optionalAuth, async (req, res) => {
@@ -162,31 +115,36 @@ router.get('/:orderNumber', optionalAuth, async (req, res) => {
 });
 
 // Track une commande par orderNumber & mail
-/* router.get('/track', async (req, res) => {
-  const { email, orderNumber } = req.query
-  const order = await Order.findByNumberAndEmail(orderNumber, email)
-  if (!order) return res.status(404).json({ ok: false, message: 'Not found' })
-  res.json({ ok: true, order })
-}) */
+router.post('/track', optionalAuth, findByNumberAndEmail);
 
-// Track une commande par orderNumber & mail
-router.post('/track', findByNumberAndEmail);
-
-
-// GET /api/orders/shop/:shopId?status=pending
-router.get('/shop/:shopId', async (req, res) => {
+// GET /api/orders/shop/:shopId
+router.get('/shop/:shopId', authenticateToken, async (req, res) => {
   try {
     const { shopId } = req.params;
 
-    const orders = await Order.findByShopId(shopId);
+    // Étape 1️⃣ : Vérifier que la boutique existe
+    const shop = await Shop.findById(shopId);
+    if (!shop) {
+      return res.status(404).json({ error: 'Boutique non trouvée' });
+    }
 
-/*     if (!orders || orders.length === 0) {
+    // Étape 2️⃣ : Vérifier que l’utilisateur connecté est le propriétaire
+    if (shop.owner_id !== req.user.userId) {
+      return res.status(403).json({ error: 'Accès refusé : vous n’êtes pas le propriétaire de cette boutique' });
+    }
+
+    // Étape 3️⃣ : Récupérer les commandes de cette boutique
+    let orders;
+    orders = await Order.findByShopId(shopId);
+
+
+    // Étape 4️⃣ : Gérer le cas aucune commande
+    if (!orders || orders.length === 0) {
       return res.status(404).json({ message: 'Aucune commande trouvée pour cette boutique.' });
-    } */
-
-    //console.log("erreur dans ordder route  ? ??? ? ? ? ? ? ")
+    }
 
     res.json(orders);
+
   } catch (error) {
     console.error('Erreur dans GET /orders/shop/:shopId:', error);
     res.status(500).json({ message: 'Erreur interne du serveur' });
