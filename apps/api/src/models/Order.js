@@ -1,5 +1,26 @@
 const pool = require('../config/database');
 
+
+// ✅ Sanitize before storing
+function sanitizeAddress(address) {
+  const sanitize = (str) => {
+    if (typeof str !== 'string') return '';
+    return str
+      .replace(/[<>]/g, '')  // Remove < and >
+      .trim()
+      .substring(0, 100);  // Max length
+  };
+  
+  return {
+    name: sanitize(`${address.firstName} ${address.lastName}`),
+    street: sanitize(address.line),
+    city: sanitize(address.city),
+    postal_code: sanitize(address.postalCode),
+    phone: sanitize(address.phone),
+    email: sanitize(address.email),
+    country: sanitize(address.country)
+  };
+}
 class Order {
 
   /**
@@ -35,15 +56,7 @@ class Order {
         throw new Error('Adresse de livraison incomplète');
 
       // --- Format shipping address ---
-      const shippingAddress = {
-        name: `${address.firstName} ${address.lastName}`,
-        street: address.line,
-        city: address.city,
-        postal_code: address.postalCode,
-        country: address.country,
-        phone: address.phone,
-        email: address.email
-      };
+      const shippingAddress = sanitizeAddress(address);
 
       // --- Retrieve product/variant data ---
       const variantIds = items.map(i => i.variantId);

@@ -50,17 +50,22 @@ export default function OrderTrackingPage() {
   const [error, setError] = useState<string | null>(null)
 
 const handleTrack = async () => {
+
+  if (!orderNumber.trim() || !email.trim()) {
+    setError('Veuillez entrer un numéro de commande et un e-mail valides.');
+    return;
+  }
+
   setLoading(true)
   setError(null)
   setOrder(null)
 
   const res = await apiClient.getOrderTracking(orderNumber, email)
 
-  if (!res.ok) {
-    setError(res.message || 'Commande introuvable.')
-  } else {
+  if (!res.ok)
+    setError(res.message)
+  else
     setOrder(res.order)
-  }
 
   setLoading(false)
 }
@@ -111,7 +116,7 @@ const handleTrack = async () => {
               </Button>
             </div>
 
-            {error && <p className="text-red-600 text-sm mt-2">{error}</p>}
+            {error && (<p className="text-red-600 text-sm mt-2">{error}</p>)}
           </CardContent>
         </Card>
 
