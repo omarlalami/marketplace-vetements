@@ -87,9 +87,9 @@ class Shop {
 
   static async update(id, { name, description, logoUrl }) {
     try {
-      // Récupérer la boutique actuelle
+      // 1️⃣ Récupérer la boutique actuelle
       const existingShopResult = await pool.query(
-        `SELECT id FROM shops WHERE id = $1 AND is_active = true`,
+        `SELECT id, name FROM shops WHERE id = $1 AND is_active = true`,
         [id]
       );
       const existingShop = existingShopResult.rows[0];
@@ -100,12 +100,11 @@ class Shop {
         throw err;
       }
 
-      // --- 🔹 Si le nom change ---
-      if (name !== undefined && name !== existingShop.name) {
-        // Vérifier si une autre boutique a déjà ce nom
+      // 2️⃣ Vérifier si le nom existe déjà chez un autre shop
+      if (name && name !== existingShop.name) {
         const nameCheck = await pool.query(
-          `SELECT id FROM shops WHERE name = $1`,
-          [name]
+          `SELECT id FROM shops WHERE name = $1 AND id <> $2`,
+          [name, id]
         );
 
         if (nameCheck.rows.length > 0) {
@@ -115,36 +114,26 @@ class Shop {
         }
       }
 
-        // Vérifier si une autre boutique a déjà ce nom
-        const nameCheckExist = await pool.query(
-          `SELECT id FROM shops WHERE name = $1`,
-          [name]
-        );
-        if (nameCheckExist.rows.length > 0) {
-          const err = new Error("Une boutique avec ce nom existe déjà.");
-          err.code = "SHOP_NAME_EXISTS";
-          throw err;
-        }
-
-      // --- 🔹 Exécuter la requête ---
+      // 3️⃣ Mise à jour
       const query = `
         UPDATE shops
-        SET name = $1, description = $2
-        WHERE id = $3 AND is_active = true
-        RETURNING *
+        SET name = $1, description = $2, logo_url = $3
+        WHERE id = $4 AND is_active = true
+        RETURNING *;
       `;
 
-      const result = await pool.query(query, [name, description, id]);
+      const result = await pool.query(query, [name, description, logoUrl, id]);
       return result.rows[0];
 
     } catch (err) {
-      if (["SHOP_NOT_FOUND", "SHOP_NAME_EXISTS", "SHOP_UPDATE_FAILED", "NO_FIELDS"].includes(err.code)) {
+      if (["SHOP_NOT_FOUND", "SHOP_NAME_EXISTS"].includes(err.code)) {
         throw err;
       }
       console.error("Erreur update boutique:", err);
       throw new Error("Erreur lors de la mise à jour de la boutique.");
     }
   }
+
 
   // Soft delete
   static async delete(id) {
