@@ -14,8 +14,10 @@ const isProduction = process.env.NODE_ENV === 'production';
 const cookieOptions = {
   httpOnly: true,
   secure: isProduction, // secure true seulement en prod
-  sameSite: isProduction ? 'none' : 'lax', // 'none' en prod (cross-domain)
-  // ⚠️ si API et front sont sur 2 domaines différents → utiliser "none" + secure: true
+  sameSite: isProduction ? 'strict' : 'lax',
+  // SameSite=strict: bloque TOUTES les requêtes cross-site
+  // SameSite=lax: permet les navigations (links) mais pas fetch
+  // ⚠️ si API et front sont sur 2 domaines différents → utiliser "none"
   maxAge: 1000 * 60 * 60 * 24 * 30 // 30 jours
 };
 
@@ -67,15 +69,9 @@ const login = async (req, res) => {
     res.json({
       message: 'Connexion réussie',
       user: {
-        id: user.id,
-        email: user.email,
         firstName: user.first_name,
         lastName: user.last_name,
-        avatar: user.avatar_url,
-        bio: user.bio,
-        brandName: user.brand_name
-      },
-      token
+      }
     });
 
   } catch (error) {
@@ -113,7 +109,10 @@ const logout = (req, res) => {
     res.clearCookie("auth-store", {
       httpOnly: true,
       secure: isProduction, // en prod → true, en dev → false si tu n’as pas https
-      sameSite: isProduction ? 'none' : 'lax', // si frontend et backend sont sur 2 domaines différents → "none"
+      sameSite: isProduction ? 'strict' : 'lax',
+    // SameSite=strict: bloque TOUTES les requêtes cross-site
+    // SameSite=lax: permet les navigations (links) mais pas fetch
+    // ⚠️ si API et front sont sur 2 domaines différents → utiliser "none"
     });
 
     res.status(200).json({ message: "Déconnexion réussie" });
