@@ -4,7 +4,7 @@ import { persist } from 'zustand/middleware';
 
 export interface CartItem {
   id: string;
-  productId: string; // ID du produit original
+  productId: string;
   variantId: string;
   name: string;
   price: number;
@@ -23,15 +23,13 @@ interface CartStore {
   clearCart: () => void;
   getTotalPrice: () => number;
   getTotalItems: () => number;
+  loadCart: () => void; // New method to sync with storage
 }
 
-// Fonction pour créer un ID unique basé sur le produit et ses variantes
-//a voir si on ne supprime pas ...
 const createCartItemId = (productId: string, variants?: Record<string, string>): string => {
   if (!variants || Object.keys(variants).length === 0) {
     return productId;
   }
-  // Trier les clés pour assurer la cohérence
   const sortedVariants = Object.keys(variants)
     .sort()
     .map(key => `${key}:${variants[key]}`)
@@ -39,53 +37,77 @@ const createCartItemId = (productId: string, variants?: Record<string, string>):
   return `${productId}__${sortedVariants}`;
 };
 
+// Helper to safely read from localStorage
+const safeGetFromStorage = (): CartItem[] => {
+  try {
+    const stored = localStorage.getItem('cart-storage');
+    if (!stored) return [];
+    
+    const parsed = JSON.parse(stored);
+    // Handle both old and new Zustand persist format
+    return parsed.state?.items || parsed.items || [];
+  } catch (error) {
+    console.error('Error reading cart from storage:', error);
+    return [];
+  }
+};
+
 export const useCartStore = create<CartStore>()(
   persist(
     (set, get) => ({
       items: [],
 
-      addItem: (item) => {
-        const items = get().items;
-        
-        // Créer un ID unique pour ce produit avec ses variantes
-        const cartItemId = createCartItemId(item.productId, item.selectedVariants);
-        const existingItem = items.find((i) => i.id === cartItemId);
+      loadCart: () => {
+        // Force reload from localStorage to sync across tabs
+        const storedItems = safeGetFromStorage();
+        set({ items: storedItems });
+      },
 
-        // S'assurer que le prix est un nombre
+      addItem: (item) => {
+        // Always read fresh state from storage first
+        const storedItems = safeGetFromStorage();
+        const cartItemId = createCartItemId(item.productId, item.selectedVariants);
+        const existingItem = storedItems.find((i) => i.id === cartItemId);
+
         const price = typeof item.price === 'string' ? parseFloat(item.price) : item.price;
+        let newItems: CartItem[];
 
         if (existingItem) {
-          set({
-            items: items.map((i) =>
-              i.id === cartItemId
-                ? { ...i, quantity: i.quantity + (item.quantity || 1) }
-                : i
-            ),
-          });
+          newItems = storedItems.map((i) =>
+            i.id === cartItemId
+              ? { ...i, quantity: i.quantity + (item.quantity || 1) }
+              : i
+          );
         } else {
-          set({ 
-            items: [...items, { 
-              ...item, 
+          newItems = [
+            ...storedItems,
+            {
+              ...item,
               id: cartItemId,
-              price, 
-              quantity: item.quantity || 1
-            }] 
-          });
+              price,
+              quantity: item.quantity || 1,
+            },
+          ];
         }
+
+        set({ items: newItems });
       },
 
       removeItem: (id) => {
-        set({ items: get().items.filter((item) => item.id !== id) });
+        const storedItems = safeGetFromStorage();
+        set({ items: storedItems.filter((item) => item.id !== id) });
       },
 
       updateQuantity: (id, quantity) => {
+        const storedItems = safeGetFromStorage();
+        
         if (quantity <= 0) {
-          get().removeItem(id);
+          set({ items: storedItems.filter((item) => item.id !== id) });
           return;
         }
 
         set({
-          items: get().items.map((item) =>
+          items: storedItems.map((item) =>
             item.id === id ? { ...item, quantity } : item
           ),
         });
@@ -114,3 +136,13 @@ export const useCartStore = create<CartStore>()(
     }
   )
 );
+
+// Listen for storage changes across tabs
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (event) => {
+    if (event.key === 'cart-storage') {
+      // Reload cart when storage changes in another tab
+      useCartStore.getState().loadCart();
+    }
+  });
+}
