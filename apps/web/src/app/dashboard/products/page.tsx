@@ -82,13 +82,10 @@ export default function ProductsPage() {
         
         setShops(shopsData.shops)
 
-
-
         // Charger les produits de toutes les boutiques
         const allProducts = []
         for (const shop of shopsData.shops) {
           try {
-            //console.log('shop info : ', JSON.stringify(shop, null, 2))
             const shopProducts = await apiClient.getProducts({shop: shop.slug})
             allProducts.push(...shopProducts.products)
           } catch (err) {
@@ -96,7 +93,6 @@ export default function ProductsPage() {
           }
         }
         
-        //console.log('Tout les produits recu : ', JSON.stringify(allProducts, null, 2))
         setProducts(allProducts)
         setFilteredProducts(allProducts)
       } catch (error: any) {

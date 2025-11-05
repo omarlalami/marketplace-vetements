@@ -10,6 +10,7 @@ const productRoutes = require('./routes/products');
 const categoryRoutes = require('./routes/categories');
 const attributesRoutes = require('./routes/attributes');
 const ordersRoutes = require('./routes/orders');
+const { authLimiter, globalLimiter } = require('./middleware/rateLimiter');
 
 const app = express();
 
@@ -22,6 +23,20 @@ app.use(express.json({ limit: '10mb' }));
 app.use(cookieParser());
 app.use(express.urlencoded({ extended: true }));
 
+// ✅ AJOUTER: Headers de sécurité
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  next();
+});
+
+// Appliquer le limiteur global à toutes les routes
+// Appliquer une limite plus stricte sur les routes sensibles
+app.use(globalLimiter);
+app.use('/auth', authLimiter);
+
 // Routes
 app.use('/auth', authRoutes);
 app.use('/shops', shopRoutes);
@@ -30,16 +45,7 @@ app.use('/categories', categoryRoutes);
 app.use('/attributes', attributesRoutes);
 app.use('/orders', ordersRoutes);
 
-/*  app.use((req, res, next) => {
-  console.log("🔎 New request:")
-  console.log("Method:", req.method)
-  console.log("URL:", req.originalUrl)
-  console.log("Headers:", req.headers)
-  console.log("Cookies:", req.cookies)
-  console.log("Body:", req.body)
-  next()
-})  */
- app.use((req, res, next) => {
+app.use((req, res, next) => {
   next()
 }) 
 
@@ -69,17 +75,6 @@ const PORT = process.env.PORT;
 initializeBuckets()
   .then(() => {
     app.listen(PORT, () => {
-      //console.log(`🚀 API Marketplace démarrée sur le port ${PORT}`);
-      //console.log(`📍 Health check: http://localhost:${PORT}/health`);
-     /*  console.log(`📍 Documentation des routes:`);
-      console.log(`   • POST /auth/register - Inscription`);
-      console.log(`   • POST /auth/login - Connexion`);
-      console.log(`   • GET /auth/profile - Profil utilisateur`);
-      console.log(`   • POST /shops - Créer une boutique`);
-      console.log(`   • GET /shops/my-shops - Mes boutiques`);
-      console.log(`   • POST /products - Créer un produit`);
-      console.log(`   • GET /products - Rechercher des produits`);
-      console.log(`   • GET /categories - Toutes les catégories`); */
     });
   })
   .catch(error => {

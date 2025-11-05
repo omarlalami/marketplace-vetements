@@ -136,17 +136,7 @@ class Product {
         const attrsResult = await pool.query(attrsQuery, [variant.id]);
         variant.attributes = attrsResult.rows;
       }
-
-/*       // 🔹 Charger les images
-      const imagesQuery = `
-        SELECT * FROM product_images 
-        WHERE product_id = $1 
-        ORDER BY display_order, is_primary DESC
-      `;
-      const imagesResult = await pool.query(imagesQuery, [id]);
-      product.images = imagesResult.rows; */
     }
-
     return product;
   }
 
@@ -187,119 +177,39 @@ class Product {
         variant.attributes = attrsResult.rows;
       }
     }
-
     return product;
   }
 
-
   // Route publique pour les produits (avec filtre boutique)
-static async searchPublicProducts({ search, slug, minPrice, maxPrice, shop, limit = 20, page = 1 }) {
-  const pageNumber = parseInt(page) || 1;
-  const limitNumber = parseInt(limit) || 20;
-  const offset = (pageNumber - 1) * limitNumber;
-
-  let query = `
-    SELECT 
-      p.id,
-      p.name,
-      p.slug,
-      p.description,
-      p.created_at,
-      s.name AS shop_name,
-      s.slug AS shop_slug,
-      c.name AS category_name,
-      c.slug AS category_slug,
-      COALESCE(MIN(CASE WHEN pv.is_active = true THEN pv.price END), 0) AS min_price,
-      COALESCE(MAX(CASE WHEN pv.is_active = true THEN pv.price END), 0) AS max_price,
-      (
-        SELECT object_name 
-        FROM product_images 
-        WHERE product_id = p.id 
-        AND is_primary = true 
-        LIMIT 1
-      ) AS primary_image
-    FROM products p
-    LEFT JOIN shops s ON p.shop_id = s.id
-    LEFT JOIN categories c ON p.category_id = c.id
-    LEFT JOIN product_variants pv ON pv.product_id = p.id
-    WHERE p.is_active = true AND s.is_active = true
-  `;
-
-  const params = [];
-  let paramIndex = 1;
-
-  if (search) {
-    query += ` AND (p.name ILIKE $${paramIndex} OR p.description ILIKE $${paramIndex} OR s.name ILIKE $${paramIndex})`;
-    params.push(`%${search}%`);
-    paramIndex++;
-  }
-
-  if (slug) {
-    query += ` AND (
-      c.slug = $${paramIndex}
-      OR c.parent_id IN (SELECT id FROM categories WHERE slug = $${paramIndex})
-    )`;
-    params.push(slug);
-    paramIndex++;
-  }
-
-  if (shop) {
-    query += ` AND s.slug = $${paramIndex}`;
-    params.push(shop);
-    paramIndex++;
-  }
-
-  query += `
-    GROUP BY p.id, p.slug, s.name, s.slug, c.name, c.slug
-    HAVING 1=1
-  `;
-
-  // 🔹 Les filtres de prix doivent être dans HAVING (après GROUP BY)
-  if (minPrice) {
-    query += ` AND MIN(CASE WHEN pv.is_active = true THEN pv.price END) >= $${paramIndex}`;
-    params.push(parseFloat(minPrice));
-    paramIndex++;
-  }
-
-  if (maxPrice) {
-    query += ` AND MAX(CASE WHEN pv.is_active = true THEN pv.price END) <= $${paramIndex}`;
-    params.push(parseFloat(maxPrice));
-    paramIndex++;
-  }
-
-  query += `
-    ORDER BY p.created_at DESC
-    LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
-  `;
-  params.push(limitNumber, offset);
-
-  console.log('🔍 SQL Query:', query);
-  console.log('📦 Params:', params);
-
-  const result = await pool.query(query, params);
-
-  return {
-    products: result.rows,
-    pagination: {
-      page: pageNumber,
-      limit: limitNumber,
-      hasMore: result.rows.length === limitNumber,
-    },
-  };
-}
-
-  // 🔹 Recherche produit (reste quasi identique)
-  // to be deleted, not used
-/*   static async searchProducts(options = {}) {
-    const { limit = 20, offset = 0, search } = options;
+  static async searchPublicProducts({ search, slug, minPrice, maxPrice, shop, limit = 20, page = 1 }) {
+    const pageNumber = parseInt(page) || 1;
+    const limitNumber = parseInt(limit) || 20;
+    const offset = (pageNumber - 1) * limitNumber;
 
     let query = `
-      SELECT p.*, s.name as shop_name, s.slug as shop_slug, 
-             c.name as category_name,
-             (SELECT object_name FROM product_images WHERE product_id = p.id LIMIT 1) as primary_image
+      SELECT 
+        p.id,
+        p.name,
+        p.slug,
+        p.description,
+        p.created_at,
+        s.name AS shop_name,
+        s.slug AS shop_slug,
+        c.name AS category_name,
+        c.slug AS category_slug,
+        COALESCE(MIN(CASE WHEN pv.is_active = true THEN pv.price END), 0) AS min_price,
+        COALESCE(MAX(CASE WHEN pv.is_active = true THEN pv.price END), 0) AS max_price,
+        (
+          SELECT object_name 
+          FROM product_images 
+          WHERE product_id = p.id 
+          AND is_primary = true 
+          LIMIT 1
+        ) AS primary_image
       FROM products p
       LEFT JOIN shops s ON p.shop_id = s.id
       LEFT JOIN categories c ON p.category_id = c.id
+      LEFT JOIN product_variants pv ON pv.product_id = p.id
       WHERE p.is_active = true AND s.is_active = true
     `;
 
@@ -307,17 +217,68 @@ static async searchPublicProducts({ search, slug, minPrice, maxPrice, shop, limi
     let paramIndex = 1;
 
     if (search) {
+      const escapedSearch = search.replace(/[\\%_]/g, '\\$&');
       query += ` AND (p.name ILIKE $${paramIndex} OR p.description ILIKE $${paramIndex} OR s.name ILIKE $${paramIndex})`;
-      params.push(`%${search}%`);
+      params.push(`%${escapedSearch}%`);
       paramIndex++;
     }
 
-    query += ` ORDER BY p.created_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
-    params.push(limit, offset);
+    if (slug) {
+      query += ` AND (
+        c.slug = $${paramIndex}
+        OR c.parent_id IN (SELECT id FROM categories WHERE slug = $${paramIndex})
+      )`;
+      params.push(slug);
+      paramIndex++;
+    }
+
+    if (shop) {
+      // Valider que le slug respecte un pattern
+      if (!/^[a-z0-9-]+$/.test(shop)) {
+        throw new Error('Format de slug invalide');
+      }
+      query += ` AND s.slug = $${paramIndex}`;
+      params.push(shop);
+      paramIndex++;
+    }
+
+    query += `
+      GROUP BY p.id, p.slug, s.name, s.slug, c.name, c.slug
+      HAVING 1=1
+    `;
+
+    // 🔹 Les filtres de prix doivent être dans HAVING (après GROUP BY)
+    if (minPrice && maxPrice) {
+      query += ` AND BOOL_OR(pv.is_active = true AND pv.price BETWEEN $${paramIndex} AND $${paramIndex + 1})`;
+      params.push(parseFloat(minPrice), parseFloat(maxPrice));
+      paramIndex += 2;
+    } else if (minPrice) {
+      query += ` AND BOOL_OR(pv.is_active = true AND pv.price >= $${paramIndex})`;
+      params.push(parseFloat(minPrice));
+      paramIndex++;
+    } else if (maxPrice) {
+      query += ` AND BOOL_OR(pv.is_active = true AND pv.price <= $${paramIndex})`;
+      params.push(parseFloat(maxPrice));
+      paramIndex++;
+    }
+
+    query += `
+      ORDER BY p.created_at DESC
+      LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+    `;
+    params.push(limitNumber, offset);
 
     const result = await pool.query(query, params);
-    return result.rows;
-  } */
+
+    return {
+      products: result.rows,
+      pagination: {
+        page: pageNumber,
+        limit: limitNumber,
+        hasMore: result.rows.length === limitNumber,
+      },
+    };
+  }
 
   // 🔹 Produits d’une boutique
   // Récupérer les produits d'une boutique spécifique (pour le dashboard)
@@ -373,7 +334,6 @@ static async searchPublicProducts({ search, slug, minPrice, maxPrice, shop, limi
         variant.attribute_values = attrsResult.rows; // [{ attribute: "Taille", value: "L" }]
       }
     }
-
     return products;
   }
 
@@ -485,7 +445,6 @@ static async searchPublicProducts({ search, slug, minPrice, maxPrice, shop, limi
       }
 
       await client.query("COMMIT");
-      console.log(`✅ Produit mis à jour: ${id}`);
       return { success: true };
     } catch (error) {
       await client.query("ROLLBACK");

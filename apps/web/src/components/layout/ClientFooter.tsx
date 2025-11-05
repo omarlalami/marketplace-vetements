@@ -18,7 +18,7 @@ export function ClientFooter() {
               <h4 className="font-semibold mb-4">Découvrir</h4>
               <div className="space-y-2">
                 <Link href="/shops" className="block text-gray-400 hover:text-white transition-colors">
-                  Créateurs
+                  Les marques Algeriennes
                 </Link>
               </div>
             </div>
@@ -27,7 +27,7 @@ export function ClientFooter() {
               <h4 className="font-semibold mb-4">Créateurs</h4>
               <div className="space-y-2">
                 <Link href="/register" className="block text-gray-400 hover:text-white transition-colors">
-                  Devenir créateur
+                  Rajouter votre Marque
                 </Link>
                 <Link href="/login" className="block text-gray-400 hover:text-white transition-colors">
                   Se connecter

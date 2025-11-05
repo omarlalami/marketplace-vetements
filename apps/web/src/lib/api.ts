@@ -41,7 +41,6 @@ class ApiClient {
         }
       }
       else {
-        console.log('🔍 ApiClient - No auth-store cookie found');
       }
     }
     return config;
@@ -288,17 +287,21 @@ class ApiClient {
       const response = await this.client.post('/orders/track', { orderNumber, email });
       return { ok: true, order: response.data.order };
     } catch (error: any) {
-      // AxiosError a une propriété response contenant le code HTTP
-      if (error.response && error.response.status === 404) {
-        return { ok: false, message: 'Commande introuvable' };
+      if (error.response) {
+        const { status, data } = error.response;
+
+        if (status === 400) {
+          return { ok: false, message: data.message || 'Entrée invalide. Vérifiez vos informations.' };
+        }
+        if (status === 404) {
+          return { ok: false, message: data.message || 'Commande introuvable.' };
+        }
       }
 
-      // Autres erreurs (réseau, serveur, etc.)
       console.error('Erreur API tracking:', error);
       return { ok: false, message: 'Erreur serveur, veuillez réessayer plus tard.' };
     }
   }
-
 
   async getOrdersByShop(shopId: string) {
     try {

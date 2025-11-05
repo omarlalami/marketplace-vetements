@@ -74,8 +74,6 @@ export default function ShopPage() {
         setShop(shopData.shop)
         setProducts(productsData.products || [])
         setFilteredProducts(productsData.products || [])
-        console.log('productsData :', JSON.stringify(productsData, null, 2))
-
       } catch (error: any) {
         setError(error.response?.data?.error || 'Boutique non trouvée')
       } finally {
