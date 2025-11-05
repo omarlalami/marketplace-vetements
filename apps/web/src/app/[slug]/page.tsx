@@ -97,8 +97,6 @@ export default function CategoryPage() {
           page: page,
         }
 
-        console.log('📡 Appel API avec params:', apiParams)
-
         const response = await apiClient.getProducts(apiParams)
 
         if (!response.ok && response.ok !== undefined) {
@@ -149,7 +147,6 @@ export default function CategoryPage() {
     search?: string
     shopSlug?: string
   }) => {
-    console.log('🔧 Filtres appliqués:', newFilters)
     
     // 🔐 Valider les prix reçus
     const validatedMinPrice = validatePrice(newFilters.minPrice)

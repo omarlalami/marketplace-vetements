@@ -70,7 +70,6 @@ export default function ConfirmationOrderPage() {
     const fetchOrder = async () => {
       try {
         const res = await apiClient.getOrderByOrderNumber(orderId as string)
-        //console.log('✅ Order found RES:', JSON.stringify(res, null, 2))
         setOrder(res.order)
       } catch (error: any) {
         if (error.response && error.response.status === 404) {

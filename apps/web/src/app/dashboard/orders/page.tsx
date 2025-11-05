@@ -125,14 +125,12 @@ export default function OrdersPage() {
       try {
         setLoading(true)
         const shopsData = await apiClient.getMyShops()
-        //console.log('recu shopsData:', JSON.stringify(shopsData, null, 2))
         setShops(shopsData.shops)
 
         const allOrders: Order[] = []
         for (const shop of shopsData.shops) {
           try {
             const shopOrders = await apiClient.getOrdersByShop(shop.id)
-            //console.log('recu shopOrders:', JSON.stringify(shopOrders, null, 2))
             
             // Transformer les données API pour matcher l'interface Order
             const transformedOrders = shopOrders.map((order: any) => ({

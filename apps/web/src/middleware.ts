@@ -70,8 +70,6 @@ export function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL("/login", request.url));
     }
 
-    console.log('✅ Token present:', token.substring(0, 20) + '...');
-
   }
 
   return NextResponse.next()

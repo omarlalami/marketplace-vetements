@@ -41,7 +41,6 @@ class ApiClient {
         }
       }
       else {
-        console.log('🔍 ApiClient - No auth-store cookie found');
       }
     }
     return config;

@@ -47,7 +47,6 @@ export default function CreateProductPage() {
         setShops(shopsData.shops)
         setCategories(categoriesData.categories)
         setAttributes(attributesData.attributes)
-        //console.log("categoriesData : ", JSON.stringify(categoriesData, null, 2))
       } catch (error) {
         console.error('Erreur chargement données:', error)
       }
