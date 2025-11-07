@@ -2,7 +2,6 @@ require('dotenv').config();
 const express = require('express');
 const cookieParser = require('cookie-parser')
 const cors = require('cors');
-const { initializeBuckets } = require('./config/minio');
 
 const authRoutes = require('./routes/auth');
 const shopRoutes = require('./routes/shops');
@@ -14,11 +13,13 @@ const { authLimiter, globalLimiter } = require('./middleware/rateLimiter');
 
 const app = express();
 
-// Middleware
+// ✅ CORS - même domaine
 app.use(cors({
   origin: process.env.NEXT_PUBLIC_APP_URL,
   credentials: true
 }));
+
+// Middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(cookieParser());
 app.use(express.urlencoded({ extended: true }));
@@ -45,10 +46,6 @@ app.use('/categories', categoryRoutes);
 app.use('/attributes', attributesRoutes);
 app.use('/orders', ordersRoutes);
 
-app.use((req, res, next) => {
-  next()
-}) 
-
 // Route de test
 app.get('/health', (req, res) => {
   res.json({ 
@@ -71,13 +68,6 @@ app.use((error, req, res, next) => {
 
 const PORT = process.env.PORT;
 
-// Initialiser MinIO puis démarrer le serveur
-initializeBuckets()
-  .then(() => {
-    app.listen(PORT, () => {
-    });
-  })
-  .catch(error => {
-    console.error('❌ Erreur lors du démarrage:', error);
-    process.exit(1);
-  });
+app.listen(PORT, () => {
+  console.log(`✅ Serveur démarré sur le port ${PORT}`);
+});

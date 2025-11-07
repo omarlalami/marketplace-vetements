@@ -2,6 +2,7 @@ require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
 const { Pool } = require('pg');
+const { cleanBuckets } = require('../src/config/minio');
 
 const pool = new Pool({
   user: process.env.DB_USER,
@@ -39,5 +40,7 @@ async function runCleaning() {
     process.exit(1);
   }
 }
+
+cleanBuckets();
 
 runCleaning();
