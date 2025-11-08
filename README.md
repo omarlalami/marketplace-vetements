@@ -28,26 +28,51 @@ Avant de démarrer, assurez-vous d’avoir installé :
 ### 1️⃣ Lancer PostgreSQL via Docker
 
 ```bash
-docker run --name postgresqldev   -e POSTGRES_PASSWORD=password   -e POSTGRES_USER=root   -p 5432:5432   -d postgres
+# download image
+docker pull postgres:18
+# start an independant container
+docker run --name postgresqldev   -e POSTGRES_PASSWORD=password   -e POSTGRES_USER=root   -p 5432:5432   -d postgres:18
 ```
 
 ### 2️⃣ Créer la base et l’utilisateur
 
-Connectez-vous à PostgreSQL :
+Connectez-vous à PostgreSQL (executed from a terminal) :
+
+```bash
+# one-liner that drops you directly into a PostgreSQL shell inside the container 
+docker exec -it postgresqldev psql -U root -d postgres
+```
 
 ```sql
 CREATE DATABASE marketplace_dev;
 CREATE USER marketplace WITH PASSWORD 'marketplace123';
 GRANT ALL PRIVILEGES ON DATABASE marketplace_dev TO marketplace;
+\c marketplace_dev
+GRANT ALL ON SCHEMA public TO marketplace;
+ALTER SCHEMA public OWNER TO marketplace;
 ```
 
-### 3️⃣ Créer le schéma
+### 3️⃣ Usefull commande
 
 ```sql
+--montrer les bases de donnee 
+\l
+
+--se connecter a une base
+\c marketplace_dev
+
+--se connecter a une base en tant que
+\c marketplace_dev marketplace
 \c marketplace_dev root
-CREATE SCHEMA marketplace_schema;
-GRANT ALL ON SCHEMA marketplace_schema TO marketplace;
+
+--montrer les tables
+\dt
+
+--montrer droit sur un schema
 \dn+ marketplace_schema
+
+--quitter
+\q
 ```
 
 ---
@@ -57,19 +82,22 @@ GRANT ALL ON SCHEMA marketplace_schema TO marketplace;
 ### Lancer Minio via Docker
 
 ```bash
-docker pull minio/minio
-docker run --name miniodev   -p 9000:9000 -p 9001:9001   -e MINIO_ROOT_USER=minioadmin   -e MINIO_ROOT_PASSWORD=minioadmin123   minio/minio server /data --console-address ":9001"
+docker pull minio/minio:RELEASE.2025-09-07T16-13-09Z
+docker run --name miniodev   -p 9000:9000 -p 9001:9001   -e MINIO_ROOT_USER=minioadmin   -e MINIO_ROOT_PASSWORD=minioadmin123  -d minio/minio:RELEASE.2025-09-07T16-13-09Z server /data --console-address ":9001"
 ```
 
 ### Accès à la console
 
-👉 [http://127.0.0.1:9001/browser](http://127.0.0.1:9001/browser)
+👉 Web Console Minio : **http://localhost:9001**  
+👉 API Minio: http://localhost:9000
 
 ---
 
 ## ⚡ Quickstart
 
-### 🏗️ Environnement de production
+### 🏗️ Environnement de production / dev
+
+Executer dans rep \marketplace-vetements>
 
 ```bash
 # Installer les dépendances
@@ -80,6 +108,9 @@ pnpm build
 
 # Configuration initiale de la base
 pnpm setup-db
+
+# Cree un compte  vendeur & Ajoute les données de test (catégories, produits, etc.)
+pnpm populate
 
 # Démarrer les serveurs : Environnement de développement (local) (Redemarre a chaque modif)
 pnpm dev
@@ -94,17 +125,11 @@ pnpm start
 
 ### Vérifier le fonctionnement du serveur :
 
-```bash
-pnpm dev:api
-```
-
-Puis ouvrez dans le navigateur :
+Dans un navigateur :
 
 - [http://localhost:3001/health](http://localhost:3001/health) → retourne `Ok`
 
----
-
-## 👤 Test création d’utilisateur
+Dans un terminal :
 
 ```bash
 curl -X POST http://localhost:3001/auth/register   -H "Content-Type: application/json"   -d '{
@@ -147,20 +172,11 @@ pnpm add express-rate-limit
 
 ---
 
-## 🔄 Ordre d’utilisation conseillé
-
-1. `pnpm setup-db` → Crée et initialise la base  
-2. Démarrer le projet avec `pnpm dev` ou `pnpm start` 
-3. Créer un compte utilisateur depuis API (`/auth/register`) ou interface WEB
-4. `pnpm populate` → Active le compte utilisateur & Ajoute les données de test (catégories, produits, etc.)  
-
----
-
 ## ✅ Vérification finale
 
 - Backend accessible sur : **http://localhost:3001**
 - Frontend accessible sur : **http://localhost:3000**
-- Console Minio : **http://127.0.0.1:9001**
+- Exising account to connect to : user : admin@admin.com  password : admin@admin.com
 
 ---
 
