@@ -2,14 +2,12 @@
 -- created_by pour tous les produits
 -- Owner / creator
 
-
 -- ============================================================
---  Once u create a first user admin default use this to ppulate with shops & products 
+--  Create a first Vendor and populate with shops & products 
 -- ============================================================
 
--- The first account created will be activated
-
-update users set is_active = true where id = ( select id  from users order by created_at asc limit 1 ) ;
+INSERT INTO users (email, password_hash, is_active) VALUES ('admin@admin.com','$2a$10$ZcnQw2q88.3czBC9uJWAGOuNY.m5vVMMb5Yad/uubcRLB4yweE/OW',true);
+INSERT INTO user_profiles (user_id, first_name, last_name) VALUES (( select id  from users order by created_at asc limit 1 ),'adminP', 'adminN');
 
 -- =================================================
 -- Create shops
