@@ -1,5 +1,6 @@
 const pool = require('../config/database');
 const { slugify } = require('transliteration'); 
+const { BUCKETS } = require('../config/minio');
 
 class Product {
 
@@ -459,6 +460,7 @@ class Product {
   //tester ok
   static async deleteById(id) {
     const client = await pool.connect();
+    const PRODUCTS_BUCKET = BUCKETS.find(b => b.startsWith('products'));
 
     try {
       await client.query('BEGIN');
@@ -496,7 +498,7 @@ class Product {
       for (const image of imagesResult.rows) {
         try {
           const fileName = image.object_name;
-          await minioClient.removeObject('products', fileName);
+          await minioClient.removeObject(PRODUCTS_BUCKET, fileName);
           console.log(`🗑️ Image supprimée de MinIO: ${fileName}`);
         } catch (error) {
           console.error('⚠️ Erreur suppression image MinIO:', error);
