@@ -18,7 +18,7 @@ export function DashboardHeader() {
       <div className="flex h-16 items-center justify-between px-6">
         <div className="flex items-center space-x-4">
           <Link href="/dashboard" className="text-xl font-bold text-primary">
-            Fashion Market
+            Aqnar Concept Store
           </Link>
           <nav className="hidden md:flex items-center space-x-6 text-sm">
             <Link href="/" className="text-muted-foreground hover:text-foreground">
