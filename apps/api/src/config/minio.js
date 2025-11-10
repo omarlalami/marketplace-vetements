@@ -8,24 +8,40 @@ const minioClient = new Minio.Client({
   secretKey: process.env.MINIO_SECRET_KEY,
 });
 
-const BUCKETS = ['products', 'avatars', 'shop-logos'];
+// Liste de base des buckets
+const BASE_BUCKETS = ['products'];
+
+// Buckets finaux avec suffixe de projet
+const BUCKETS = BASE_BUCKETS.map(
+  (name) => `${name}-${process.env.PROJECT_SUFFIX}`
+);
 
 /**
  * Initialise les buckets s'ils n'existent pas.
+ * Interromp si un bucket au meme nom existe deja
  */
 async function initializeBuckets() {
   try {
     for (const bucket of BUCKETS) {
       const exists = await minioClient.bucketExists(bucket);
-      if (!exists) {
-        await minioClient.makeBucket(bucket);
-        console.log(`✅ Bucket '${bucket}' créé`);
+
+      if (exists) {
+        console.error(`❌ Le bucket '${bucket}' existe déjà. Arrêt du script pour éviter un conflit.`);
+        // Stop the Node process with a non-zero exit code
+        process.exit(1);
       }
+
+      await minioClient.makeBucket(bucket);
+      console.log(`✅ Bucket '${bucket}' créé`);
     }
+
+    console.log('🎉 Tous les buckets ont été créés avec succès.');
   } catch (error) {
-    console.error('❌ Erreur MinIO:', error);
+    console.error('❌ Erreur MinIO (initializeBuckets):', error);
+    process.exit(1);
   }
 }
+
 
 /**
  * Supprime tous les objets dans chaque bucket puis supprime le bucket lui-même.
@@ -64,4 +80,4 @@ async function cleanBuckets() {
   }
 }
 
-module.exports = { minioClient, initializeBuckets, cleanBuckets };
+module.exports = { minioClient, initializeBuckets, cleanBuckets, BUCKETS};

@@ -86,7 +86,7 @@ export default function DashboardPage() {
             Bonjour {user?.firstName} ! 👋
           </h1>
           <p className="text-muted-foreground mt-2">
-            Bienvenue sur votre tableau de bord Fashion Market
+            Bienvenue sur votre tableau de bord Aqnar Concept Store
           </p>
         </div>
 

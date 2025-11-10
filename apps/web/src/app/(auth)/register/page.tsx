@@ -89,7 +89,7 @@ export default function RegisterPage() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl">Créer un compte</CardTitle>
-          <CardDescription>Rejoignez Fashion Market</CardDescription>
+          <CardDescription>Rejoignez Aqnar Concept Store</CardDescription>
         </CardHeader>
         <CardContent>
           {/* ✅ Message de succès */}

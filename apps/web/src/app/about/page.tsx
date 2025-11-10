@@ -132,7 +132,7 @@ export default function AboutPage() {
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto mb-12 text-center">
             <h2 className="text-3xl font-bold text-gray-900 mb-2">Avis de nos clients</h2>
-            <p className="text-gray-600">Ils aiment déjà Fashion Market</p>
+            <p className="text-gray-600">Ils aiment déjà Aqnar Concept Store</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

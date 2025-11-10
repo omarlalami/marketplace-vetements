@@ -75,7 +75,7 @@ export function ClientNavbar() {
         <div className="flex justify-between items-center">
           {/* Logo */}
           <Link href="/" className="text-lg md:text-xl font-bold text-primary shrink-0">
-            Fashion Market
+            Aqnar Concept Store
           </Link>
 
           {/* Navigation principale (Desktop) */}

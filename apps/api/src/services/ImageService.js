@@ -1,14 +1,15 @@
-const { minioClient } = require('../config/minio');
+const { minioClient, BUCKETS } = require('../config/minio');
 const { v4: uuidv4 } = require('uuid');
 const pool = require('../config/database');
 
+const PRODUCTS_BUCKET = BUCKETS.find(b => b.startsWith('products'));
 class ImageService {
   //tester ok
   static async uploadProductImage(file,productId) {
     const fileName =  `${productId}/${uuidv4()}`;
     
     try {
-      await minioClient.putObject('products', fileName, file.buffer, file.size, {
+      await minioClient.putObject(PRODUCTS_BUCKET, fileName, file.buffer, file.size, {
         'Content-Type': file.mimetype
       });
 
@@ -29,7 +30,7 @@ class ImageService {
       await pool.query('DELETE FROM product_images WHERE object_name = $1', [imageKey]);
 
       // Suppression de MinIO
-      await minioClient.removeObject('products', imageKey);
+      await minioClient.removeObject(PRODUCTS_BUCKET, imageKey);
 
       return true;
     } catch (error) {
@@ -39,20 +40,8 @@ class ImageService {
   }
 
   // ✅ Récupère toutes les images d’un produit
-  // test ok 
   static async getProductImages(productId) {
     try {
-
-
-      /* bucket_name = "mybucket"
-      prefix = "images/thumbnails/"
-
-      # List objects with the specified prefix
-      objects = client.list_objects(bucket_name, prefix=prefix, recursive=True)
-
-      for obj in objects:
-          print(f"Object Name: {obj.object_name}, Size: {obj.size}") */
-
       const result = await pool.query(
         'SELECT object_name FROM product_images WHERE product_id = $1',
         [productId]
@@ -69,7 +58,7 @@ class ImageService {
         rows.map(async (row) => {
           try {
             const url = await minioClient.presignedGetObject(
-              'products',
+              PRODUCTS_BUCKET,
               row.object_name,
               24 * 60 * 60 // 24h expiration
             );
@@ -120,7 +109,7 @@ class ImageService {
 
     // 4️⃣ Generate a presigned URL from MinIO
     const url = await minioClient.presignedGetObject(
-      'products',
+      PRODUCTS_BUCKET,
       imageRow.object_name,
       24 * 60 * 60 // 24 hours
     );
