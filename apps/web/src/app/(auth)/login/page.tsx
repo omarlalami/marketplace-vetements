@@ -40,7 +40,7 @@ export default function LoginPage() {
         <CardHeader className="text-center">
           <CardTitle className="text-2xl">Se connecter</CardTitle>
           <CardDescription>
-            Connectez-vous à Fashion Market
+            Connectez-vous à Aqnar Concept Store
           </CardDescription>
         </CardHeader>
         <CardContent>

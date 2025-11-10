@@ -7,8 +7,8 @@ import './globals.css'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Fashion Market',
-  description: 'Marketplace pour créateurs de vêtements',
+  title: 'Aqnar Concept Store',
+  description: 'Marketplace pour créateurs de vêtements algérien',
 }
 
 export default function RootLayout({

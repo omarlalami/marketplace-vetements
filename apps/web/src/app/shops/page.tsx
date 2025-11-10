@@ -137,7 +137,7 @@ function ShopsContent() {
           Nos créateurs
         </h1>
         <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-          Découvrez les designers talentueux qui créent des pièces uniques sur Fashion Market. 
+          Découvrez les designers talentueux qui créent des pièces uniques sur Aqnar Concept Store. 
           Chaque créateur a son propre style et son univers artistique.
         </p>
 
